@@ -1,0 +1,18 @@
+workflows:
+  lamp-lifeform-ios:
+    name: 灯泡生命体 iOS Build
+    environment:
+      flutter: 3.27.4
+      xcode: 16.0
+      cocoapods: default
+    scripts:
+      - name: Get dependencies
+        script: flutter pub get
+      - name: Build iOS
+        script: flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/Runner.app
+    publishing:
+      email:
+        recipients:
+          - erlang@proton.me

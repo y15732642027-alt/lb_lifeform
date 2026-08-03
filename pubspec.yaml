@@ -1,0 +1,38 @@
+name: lamp_companion
+description: 灯泡伴侣 - Hermes 移动操作系统。不是聊天App·是共生体的生命中枢。
+version: 0.1.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+  flutter: ^3.27.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 网络请求
+  http: ^1.2.0
+
+  # 状态管理（轻量·V0.1用provider）
+  provider: ^6.1.0
+
+  # 中文字体
+  google_fonts: ^6.2.0
+
+  # 安全存储（Token等敏感信息）- V0.2启用
+  # flutter_secure_storage: ^9.2.0
+
+  # 设备信息（设备指纹·配对标识）
+  device_info_plus: ^10.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Hermes暗黑主题资源
+  # 中文字体由google_fonts在线加载，不打包进App减小体积
