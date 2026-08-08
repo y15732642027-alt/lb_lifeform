@@ -8,6 +8,12 @@ workflows:
       groups:
         - symbio
     scripts:
+      - name: 检查签名变量
+        script: |
+          echo "KEY_IDENTIFIER长度: ${#APP_STORE_CONNECT_KEY_IDENTIFIER}"
+          echo "ISSUER_ID长度: ${#APP_STORE_CONNECT_ISSUER_ID}"
+          echo "PRIVATE_KEY长度: ${#APP_STORE_CONNECT_PRIVATE_KEY}"
+          echo "PRIVATE_KEY开头: ${APP_STORE_CONNECT_PRIVATE_KEY:0:20}"
       - name: 获取依赖
         script: flutter pub get
       - name: 初始化签名钥匙串
