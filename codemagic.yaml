@@ -21,7 +21,7 @@ workflows:
           keychain initialize
       - name: 拉取签名证书
         script: |
-          app-store-connect fetch-signing-files com.symbio.lbLifeformIos \
+          app-store-connect fetch-signing-files com.symbio.lbLifeformlos \
             --type IOS_APP_STORE --create
           echo "签名证书拉取完成"
       - name: 添加证书到钥匙串
