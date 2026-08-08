@@ -151,7 +151,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext ctx) {
-    return Column(children: [
+    return SafeArea(child: Column(children: [
       SizedBox(height:4),
       TabBar(controller:_tabController, indicatorColor:Color(0xFFe94560), labelColor:Color(0xFFe94560), unselectedLabelColor:HermesTheme.textSecondary,
         tabs: [Tab(text:'任务 ${_tasks.length>0?"(${_tasks.length})":""}'), Tab(text:'审批 ${_approvals.length>0?"(${_approvals.length})":""}'), Tab(text:'通知 ${_notifs.length>0?"(${_notifs.length})":""}'), Tab(text:'对话')]),
@@ -186,7 +186,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
           ])),
         ]),
       ]))
-    ]);
+    ]));
   }
 
   Widget _buildList(List<Map<String,dynamic>> items, Widget Function(Map<String,dynamic>) builder) {
