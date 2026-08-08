@@ -1,17 +1,20 @@
 workflows:
   lamp-lifeform-ios:
-    name: 灯泡生命体 iOS Build
+    name: 共生体 iOS Build
     environment:
       flutter: 3.27.4
       xcode: 16.0
       cocoapods: default
     scripts:
-      - name: Get dependencies
+      - name: 获取依赖
         script: flutter pub get
-      - name: Build iOS
-        script: flutter build ios --release --no-codesign
+      - name: 构建iOS签名版
+        script: |
+          # 自动签名 - 使用App Store Connect API密钥
+          flutter build ipa --release \
+            --export-method app-store-connect
     artifacts:
-      - build/ios/iphoneos/Runner.app
+      - build/ios/ipa/*.ipa
     publishing:
       email:
         recipients:
