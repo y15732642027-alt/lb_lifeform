@@ -1,166 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// Hermes暗黑主题 — 灯泡伴侣唯一视觉语言
-///
-/// 设计原则:
-/// - 深色背景不是纯黑(0xFF0A0E14), 带微蓝色调以缓解眼睛疲劳
-/// - 状态色语义: 绿=健康·黄=降级·红=离线·蓝=信息
-/// - 不引入花哨渐变·保持工业级冷静
+/// 共生体美学 · 黑金配色
+/// Hermes Companion 商业版视觉规范
 class HermesTheme {
-  HermesTheme._();
+  // 基础
+  static const bg = Color(0xFF050505);          // 纯黑底
+  static const surface = Color(0xFF0d0d0d);     // 卡片黑
+  static const surfaceLight = Color(0xFF1a1a1a);// 悬浮黑
+  
+  // 文字
+  static const textPrimary = Color(0xFFf0ede5); // 暖白
+  static const textSecondary = Color(0xFF8b8578);// 暗金灰
+  static const textMuted = Color(0xFF4a4540);   // 深金灰
+  
+  // 主题色
+  static const gold = Color(0xFFd4a853);        // 暖金·主色
+  static const goldLight = Color(0xFFf0d080);   // 亮金·高亮
+  static const silver = Color(0xFFc0c0c0);      // 银·辅助
+  static const ice = Color(0xFF80d0ff);          // 冰蓝·思考态
+  
+  // 功能色
+  static const success = Color(0xFF5cb878);     // 沉绿
+  static const warning = Color(0xFFd4a853);     // 复用金
+  static const error = Color(0xFF8b3030);       // 暗红
+  static const info = Color(0xFF6078a0);        // 灰蓝
 
-  // ── 品牌色 ──
-
-  /// 主色调: 灯泡暖黄
-  static const Color lampYellow = Color(0xFFFFB300);
-
-  /// 强调色: Hermes蓝
-  static const Color hermesBlue = Color(0xFF4FC3F7);
-
-  /// 背景: 深灰蓝
-  static const Color background = Color(0xFF0A0E14);
-
-  /// 卡片/面板背景
-  static const Color surface = Color(0xFF161B22);
-
-  /// 卡片边框
-  static const Color border = Color(0xFF30363D);
-
-  /// 文字主色
-  static const Color textPrimary = Color(0xFFE6EDF3);
-
-  /// 文字次要
-  static const Color textSecondary = Color(0xFF8B949E);
-
-  // ── 状态色 ──
-
-  /// 健康 / 在线
-  static const Color statusGreen = Color(0xFF3FB950);
-
-  /// 降级 / 警告
-  static const Color statusYellow = Color(0xFFD29922);
-
-  /// 离线 / 故障
-  static const Color statusRed = Color(0xFFF85149);
-
-  /// 信息 / 未知
-  static const Color statusBlue = Color(0xFF4FC3F7);
-
-  /// 离线闪烁背景 (用于红色脉冲动画的暗底色)
-  static const Color statusRedBg = Color(0x20F85149);
-
-  // ── 主题数据 ──
-
-  static ThemeData get darkTheme {
-    return ThemeData(
-      brightness: Brightness.dark,
-      primaryColor: lampYellow,
-      scaffoldBackgroundColor: background,
-      colorScheme: const ColorScheme.dark(
-        primary: lampYellow,
-        secondary: hermesBlue,
-        surface: surface,
-        error: statusRed,
-        onPrimary: Colors.black,
-        onSecondary: Colors.black,
-        onSurface: textPrimary,
-        onError: Colors.white,
-      ),
-
-      // 卡片
-      cardTheme: CardThemeData(
-        color: surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: border, width: 0.5),
-        ),
-        margin: EdgeInsets.zero,
-      ),
-
-      // AppBar
-      appBarTheme: AppBarTheme(
-        backgroundColor: background,
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: GoogleFonts.notoSansSc(
-          color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-        iconTheme: const IconThemeData(color: textSecondary),
-      ),
-
-      // 底部导航
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: lampYellow,
-        unselectedItemColor: textSecondary,
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-      ),
-
-      // 文字层级
-      textTheme: GoogleFonts.notoSansScTextTheme().copyWith(
-        displayLarge: GoogleFonts.notoSansSc(
-          color: textPrimary,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-        titleLarge: GoogleFonts.notoSansSc(
-          color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
-        titleMedium: GoogleFonts.notoSansSc(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        bodyLarge: GoogleFonts.notoSansSc(
-          color: textPrimary,
-          fontSize: 14,
-        ),
-        bodyMedium: GoogleFonts.notoSansSc(
-          color: textSecondary,
-          fontSize: 13,
-        ),
-        labelSmall: GoogleFonts.notoSansSc(
-          color: textSecondary,
-          fontSize: 11,
-        ),
-      ),
-
-      // 分割线
-      dividerTheme: const DividerThemeData(
-        color: border,
-        thickness: 0.5,
-        space: 0,
-      ),
-
-      // 输入框
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: lampYellow, width: 1.5),
-        ),
-        hintStyle: GoogleFonts.notoSansSc(
-          color: textSecondary,
-          fontSize: 14,
-        ),
-      ),
-    );
-  }
+  // 兼容旧引用
+  static const lampYellow = gold;
+  static const statusGreen = Color(0xFF5cb878);
+  static const statusYellow = Color(0xFFd4a853);
+  static const statusRed = Color(0xFF8b3030);
+  static const statusBlue = Color(0xFF6078a0);
+  static const border = Color(0xFF2a2a2a);
+  
+  // 主题
+  static ThemeData get darkTheme => ThemeData(
+    scaffoldBackgroundColor: bg,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.dark(
+      primary: gold, secondary: silver,
+      surface: surface, error: error,
+    ),
+    appBarTheme: AppBarTheme(color: bg, elevation: 0),
+    cardTheme: CardThemeData(color: surface, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+    iconTheme: IconThemeData(color: textSecondary),
+    textTheme: TextTheme(
+      headlineLarge: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.w300, letterSpacing: -0.5),
+      headlineMedium: TextStyle(color: textPrimary, fontSize: 22, fontWeight: FontWeight.w300),
+      titleLarge: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w400),
+      titleMedium: TextStyle(color: textSecondary, fontSize: 14, fontWeight: FontWeight.w400),
+      bodyLarge: TextStyle(color: textPrimary, fontSize: 16),
+      bodyMedium: TextStyle(color: textSecondary, fontSize: 14),
+      bodySmall: TextStyle(color: textMuted, fontSize: 12),
+    ),
+  );
 }

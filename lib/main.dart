@@ -34,7 +34,7 @@ void main() {
         Provider<ApiClient>.value(value: apiClient),
         Provider<HealthService>.value(value: healthService),
       ],
-      child: const LampCompanionApp(),
+      child: const HermesCompanion(),
     ),
   );
 }

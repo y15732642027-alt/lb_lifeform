@@ -13,6 +13,7 @@ dependencies:
 
   # 网络请求
   http: ^1.2.0
+  web_socket_channel: ^3.0.0
 
   # 状态管理（轻量·V0.1用provider）
   provider: ^6.1.0

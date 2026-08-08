@@ -14,24 +14,24 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   /// 台式机Agent地址 (局域网·二郎家内网)
   /// 笔记本状态API(代理台式机+本地检测)
-  static const String _defaultHost = '192.168.1.4';
-  static const int _defaultPort = 8899;
+  static const String _defaultHost = 'symbio.xin';
+  static const int _defaultPort = 443;
 
   final String host;
   final int port;
   final http.Client _client;
 
-  /// 请求超时: 局域网5秒足够
+  /// 请求超时
   final Duration timeout;
 
   ApiClient({
     this.host = _defaultHost,
     this.port = _defaultPort,
-    this.timeout = const Duration(seconds: 5),
+    this.timeout = const Duration(seconds: 10),
     http.Client? client,
   }) : _client = client ?? http.Client();
 
-  Uri get _baseUri => Uri(scheme: 'http', host: host, port: port);
+  Uri get _baseUri => Uri(scheme: 'https', host: host, port: port);
 
   /// GET 请求
   ///
