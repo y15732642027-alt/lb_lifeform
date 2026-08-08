@@ -19,13 +19,10 @@ workflows:
       - name: 初始化签名钥匙串
         script: |
           keychain initialize
-      - name: 生成证书私钥并拉取签名证书
+      - name: 拉取签名证书
         script: |
-          ssh-keygen -t rsa -b 2048 -m PEM -f /tmp/cert_private_key -N "" -q
-          export CERTIFICATE_PRIVATE_KEY="$(cat /tmp/cert_private_key)"
           app-store-connect fetch-signing-files com.symbio.lbLifeformIos \
-            --type IOS_APP_STORE --create \
-            --certificate-key /tmp/cert_private_key
+            --type IOS_APP_STORE --create
           echo "签名证书拉取完成"
       - name: 添加证书到钥匙串
         script: |
