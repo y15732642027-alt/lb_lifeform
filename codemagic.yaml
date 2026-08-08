@@ -33,8 +33,11 @@ workflows:
       - name: 构建iOS签名版
         script: |
           flutter build ipa --release --export-method app-store
+          echo "=== IPA位置检查 ==="
+          ls -la build/ios/ipa/ 2>/dev/null || find . -name "*.ipa" -maxdepth 5 2>/dev/null || echo "没找到ipa"
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/**/*.ipa
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
