@@ -10,8 +10,22 @@ workflows:
     scripts:
       - name: 获取依赖
         script: flutter pub get
+      - name: 初始化签名钥匙串
+        script: |
+          keychain initialize
+      - name: 拉取签名证书
+        script: |
+          app-store-connect fetch-signing-files com.symbio.lbLifeformIos \
+            --type IOS_APP_STORE --create
+      - name: 添加证书到钥匙串
+        script: |
+          keychain add-certificates
+      - name: 配置Xcode签名
+        script: |
+          xcode-project use-profiles
       - name: 构建iOS签名版
-        script: flutter build ipa --release --export-method app-store
+        script: |
+          flutter build ipa --release --export-method app-store
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
