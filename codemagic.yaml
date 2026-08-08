@@ -3,7 +3,7 @@ workflows:
     name: 共生体 iOS Build
     environment:
       flutter: 3.27.4
-      xcode: 16.0
+      xcode: latest
       cocoapods: default
       groups:
         - symbio
