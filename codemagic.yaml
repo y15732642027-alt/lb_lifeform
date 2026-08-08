@@ -2,7 +2,7 @@ workflows:
   lamp-lifeform-ios:
     name: 共生体 iOS Build
     environment:
-      flutter: latest
+      flutter: stable
       xcode: latest
       cocoapods: default
       groups:
