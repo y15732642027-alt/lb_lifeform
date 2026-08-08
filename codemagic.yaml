@@ -5,6 +5,10 @@ workflows:
       flutter: 3.27.4
       xcode: 16.0
       cocoapods: default
+      app_store_connect:
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        key: $APP_STORE_CONNECT_PRIVATE_KEY
     scripts:
       - name: 获取依赖
         script: flutter pub get
