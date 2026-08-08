@@ -182,7 +182,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 12),
       // 聊天入口
       Listener(
-        onPointerDown: (_) => PresenceTab.onNavigate?.call(3),
+        onPointerDown: (_) => PresenceTab.onNavigate?.call(2),
         child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
