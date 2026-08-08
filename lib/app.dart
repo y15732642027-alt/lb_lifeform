@@ -61,15 +61,21 @@ class _CompanionShellState extends State<CompanionShell> {
   Widget _navItem(int i, String label, IconData icon, {bool isGold = false}) {
     final active = _index == i;
     final color = active ? (isGold ? HermesTheme.gold : HermesTheme.silver) : HermesTheme.textMuted;
-    return GestureDetector(
-      onTap: () => setState(() => _index = i),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          setState(() => _index = i);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: color, size: 22),
           SizedBox(height: 3),
           Text(label, style: TextStyle(color: color, fontSize: 10)),
         ]),
+        ),
       ),
     );
   }

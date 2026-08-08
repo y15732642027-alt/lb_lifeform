@@ -160,7 +160,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 10),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         // 麦克风·Listener替代GestureDetector防白框bug
-        Listener(onPointerDown: (_) => _toggleMic(),
+        Listener(onPointerDown: (_) { HapticFeedback.mediumImpact(); _toggleMic(); },
         child: Container(width: 56, height: 56,
           decoration: BoxDecoration(shape: BoxShape.circle, color: _voiceState != 'idle' ? HermesTheme.gold.withAlpha(40) : Colors.transparent, border: Border.all(color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white38, width: 1.5)),
           child: Icon(_voiceState == 'listening' ? Icons.mic : _voiceState == 'speaking' ? Icons.volume_up : Icons.mic_none, color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54),
@@ -182,7 +182,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 12),
       // 聊天入口
       Listener(
-        onPointerDown: (_) => PresenceTab.onNavigate?.call(2),
+        onPointerDown: (_) { HapticFeedback.mediumImpact(); PresenceTab.onNavigate?.call(2); },
         child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -217,7 +217,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Widget _sc(String v, String l, Color c, {VoidCallback? onTap}) => Expanded(
     child: Listener(
-      onPointerDown: (_) => onTap?.call(),
+      onPointerDown: (_) { HapticFeedback.lightImpact(); onTap?.call(); },
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 6),
         margin: EdgeInsets.symmetric(horizontal: 2),

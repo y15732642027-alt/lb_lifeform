@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/theme.dart';
 
 /// 生命粒子球 V5 · 3D透视投影 + 双控制器(呼吸4s + 旋转30s)
@@ -146,7 +147,7 @@ class SymbioOrbState extends State<SymbioOrb> with TickerProviderStateMixin {
         Future.delayed(const Duration(milliseconds: 350), () {
           if (mounted) setState(() => _touchScale = 1.0);
         });
-        widget.onTap?.call();
+        HapticFeedback.mediumImpact(); widget.onTap?.call();
       },
       onPanUpdate: (d) {
         setState(() {

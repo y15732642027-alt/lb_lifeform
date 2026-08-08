@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -154,11 +155,11 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     return SafeArea(child: Column(children: [
       SizedBox(height:4),
       TabBar(controller:_tabController, indicatorColor:Color(0xFFe94560), labelColor:Color(0xFFe94560), unselectedLabelColor:HermesTheme.textSecondary,
-        tabs: [Tab(text:'任务 ${_tasks.length>0?"(${_tasks.length})":""}'), Tab(text:'审批 ${_approvals.length>0?"(${_approvals.length})":""}'), Tab(text:'通知 ${_notifs.length>0?"(${_notifs.length})":""}'), Tab(text:'对话')]),
+        tabs: [Tab(text:'任务 ${_tasks.length>0?"(${_tasks.length})":""}'), Tab(text:'审批 ${_approvals.length>0?"(${_approvals.length})":""}'), Tab(text:'通知 ${_notifs.length>0?"(${_notifs.length})":""}'), Tab(text:'对话')], onTap:(_)=>HapticFeedback.lightImpact()),
       Expanded(child: TabBarView(controller:_tabController, children: [
         _buildTaskList(),
         _buildList(_approvals, (a)=>Column(children:[
-         ListTile(title:Text('⚠️ ${a['title']??''}',style:TextStyle(color:Color(0xFFef4444))),subtitle:Text(a['agent']??'',style:TextStyle(color:HermesTheme.textSecondary,fontSize:12)),trailing:Row(mainAxisSize:MainAxisSize.min,children:[_btn('同意',()=>_approve(a['id']??'','approved'),Color(0xFF00cc66)),SizedBox(width:4),_btn('拒绝',()=>_approve(a['id']??'','rejected'),Color(0xFFef4444))]),onTap:()=>setState(()=>_expanded=_expanded==a.hashCode?null:a.hashCode)),
+         ListTile(title:Text('⚠️ ${a['title']??''}',style:TextStyle(color:Color(0xFFef4444))),subtitle:Text(a['agent']??'',style:TextStyle(color:HermesTheme.textSecondary,fontSize:12)),trailing:Row(mainAxisSize:MainAxisSize.min,children:[_btn('同意',(){HapticFeedback.lightImpact();_approve(a['id']??'','approved');},Color(0xFF00cc66)),SizedBox(width:4),_btn('拒绝',(){HapticFeedback.lightImpact();_approve(a['id']??'','rejected');},Color(0xFFef4444))]),onTap:()=>setState(()=>_expanded=_expanded==a.hashCode?null:a.hashCode)),
          if (_expanded==a.hashCode) Container(padding:EdgeInsets.all(12),color:Color(0xFF1a1a3e),child:SelectableText(a['desc']??'暂无详情',style:TextStyle(color:HermesTheme.textSecondary,fontSize:13)))
         ])),
         _buildList(_notifs, (n)=>Column(children:[
@@ -182,7 +183,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
           )),
           Container(padding:EdgeInsets.all(8),child:Row(children:[
             Expanded(child:TextField(controller:_chatCtrl,style:TextStyle(color:Colors.white),decoration:InputDecoration(hintText:'输入...',hintStyle:TextStyle(color:Colors.white24),border:InputBorder.none,contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:8)),onSubmitted:_sendMsg)),
-            IconButton(icon:Icon(Icons.send,color:HermesTheme.gold),onPressed:()=>_sendMsg(_chatCtrl.text)),
+            IconButton(icon:Icon(Icons.send,color:HermesTheme.gold),onPressed:(){HapticFeedback.mediumImpact();_sendMsg(_chatCtrl.text);}),
           ])),
         ]),
       ]))
