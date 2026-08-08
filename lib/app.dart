@@ -30,7 +30,12 @@ class _CompanionShellState extends State<CompanionShell> {
   @override
   void initState() {
     super.initState();
-    PresenceTab.onNavigate = (tab) => setState(() => _index = tab);
+    PresenceTab.onNavigate = (tab, subTab) {
+      setState(() => _index = tab);
+      if (tab == 2) {
+        MessagesTab.switchTo(subTab);
+      }
+    };
   }
 
   @override

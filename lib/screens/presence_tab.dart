@@ -10,7 +10,8 @@ import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
   // 静态回调·Listener替代GestureDetector绕过Flutter Web白框bug
-  static void Function(int tab)? onNavigate;
+  static void Function(int tab, int subTab)? onNavigate;
+  static void jump(int tab, [int subTab = 0]) => onNavigate?.call(tab, subTab);
   const PresenceTab({super.key});
   @override
   State<PresenceTab> createState() => _PresenceTabState();
@@ -175,14 +176,14 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 8),
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
-        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=>PresenceTab.onNavigate?.call(2)),
-        _sc('$_learnedSkills','学习',HermesTheme.gold, onTap: ()=>PresenceTab.onNavigate?.call(3)),
-        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=>PresenceTab.onNavigate?.call(2)),
+        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=>PresenceTab.jump(2,1)),
+        _sc('$_learnedSkills','学习',HermesTheme.gold, onTap: ()=>PresenceTab.jump(3)),
+        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=>PresenceTab.jump(2)),
       ])),
       SizedBox(height: 12),
       // 聊天入口
       Listener(
-        onPointerDown: (_) { HapticFeedback.mediumImpact(); PresenceTab.onNavigate?.call(2); },
+        onPointerDown: (_) { HapticFeedback.mediumImpact(); PresenceTab.jump(2,3); },
         child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),

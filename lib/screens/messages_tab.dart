@@ -6,12 +6,16 @@ import 'package:http/http.dart' as http;
 import '../core/theme.dart';
 
 class MessagesTab extends StatefulWidget {
+  static void switchTo(int tab) {
+    MessagesTabState.instance?._tabController?.animateTo(tab);
+  }
   const MessagesTab({super.key});
   @override
   State<MessagesTab> createState() => MessagesTabState();
 }
 
 class MessagesTabState extends State<MessagesTab> with SingleTickerProviderStateMixin {
+  static MessagesTabState? instance;
   late TabController _tabController;
   List<Map<String,dynamic>> _tasks = [], _approvals = [], _notifs = [];
   final List<Map<String,String>> _conversations = [];
@@ -27,6 +31,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   @override
   void initState() {
     super.initState();
+    instance = this;
     _tabController = TabController(length: 4, vsync: this);
     _fetch();
     _timer = Timer.periodic(Duration(seconds: 5), (_) => _fetch());
