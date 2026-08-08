@@ -5,6 +5,8 @@ workflows:
       flutter: 3.27.4
       xcode: 16.0
       cocoapods: default
+      groups:
+        - symbio
     scripts:
       - name: 获取依赖
         script: flutter pub get
