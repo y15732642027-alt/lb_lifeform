@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import '../core/theme.dart';
@@ -23,9 +23,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   double _voiceEnergy = 0.0;
   Timer? _voiceTimer;
 
-  // 语音录制
-  html.MediaRecorder? _recorder;
-  List<html.Blob> _blobChunks = [];
+  // 语音录制 (Web仅录音·移动端用系统录音)
+  Object? _recorder;
+  List<Object> _blobChunks = [];
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
@@ -37,17 +37,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   Future<void> _startRecording() async {
-    try {
-      final stream = await html.window.navigator.mediaDevices!
-          .getUserMedia({'audio': true});
-      _recorder = html.MediaRecorder(stream);
-      _blobChunks = [];
-      _recorder!.addEventListener('dataavailable', (e) {
-        final data = (e as html.BlobEvent).data;
-        if (data != null) _blobChunks.add(data);
+    if (!kIsWeb) {
+      // 移动端录音需原生插件·占位·后续接入record包
+      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
+      _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
+        if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
       });
-      _recorder!.addEventListener('stop', (_) => _processRecording());
-      _recorder!.start();
+      return;
+    }
+    try {
+      // Web端录音
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
         if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
@@ -58,40 +57,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   void _stopRecording() {
-    _recorder?.stop();
+    _voiceTimer?.cancel();
+    if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
   }
 
   Future<void> _processRecording() async {
     _voiceTimer?.cancel();
-    if (_blobChunks.isEmpty) {
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-      return;
-    }
-    if (mounted) setState(() { _voiceState = 'speaking'; _voiceEnergy = 0.6; });
-
-    try {
-      final blob = html.Blob(_blobChunks, 'audio/webm');
-      final reader = html.FileReader();
-      reader.readAsDataUrl(blob);
-      await reader.onLoad.first;
-      final base64 = (reader.result as String).split(',').last;
-
-      final r = await http.post(
-        Uri.parse('http://192.168.1.4:8899/voice'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'audio_base64': base64}),
-      ).timeout(Duration(seconds: 30));
-
-      if (r.statusCode == 200) {
-        final d = jsonDecode(r.body);
-        final audioB64 = d['audio'] ?? '';
-        if (audioB64.isNotEmpty) {
-          final audio = html.AudioElement('data:audio/mp3;base64,$audioB64');
-          audio.play();
-        }
-      }
-    } catch (_) {}
-
+    if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     Future.delayed(Duration(seconds: 3), () {
       if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     });
@@ -121,7 +93,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _timer = Timer.periodic(const Duration(seconds: 5), (_) { _fetchCounts(); });
   }
 
-  @override void dispose(){ _recorder?.stream?.getTracks().forEach((t)=>t.stop()); _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); super.dispose(); }
+  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); super.dispose(); }
 
   void _fetchCounts() async {
     try {
