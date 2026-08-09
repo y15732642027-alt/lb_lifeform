@@ -117,7 +117,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
       setState((){ _isChatRecording=true; });
     }catch(e){
       setState((){ _isChatRecording=false; });
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音启动失败: $e')));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音: $e', maxLines:3)));
     }
   }
 

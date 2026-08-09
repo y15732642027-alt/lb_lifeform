@@ -53,7 +53,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
       await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.aacLc,
+        encoder: AudioEncoder.wav,
         sampleRate: 16000,
         numChannels: 1,
         
@@ -64,10 +64,10 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
       });
     } catch (e) {
-      print('[REC] 录音异常: $e');
+      final errMsg = e.toString();
       if (mounted) {
         setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音失败: 请检查麦克风'), duration: Duration(seconds:2)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音: $errMsg', maxLines:3), duration: Duration(seconds:4)));
       }
     }
   }
@@ -224,7 +224,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 8),
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
-        _sc('$_completedTasks','节点',Color(0xFF5CB8A0), onTap: ()=> _completedTasks > 0 ? PresenceTab.jump(2,1) : null),
+        _sc('$_completedTasks','已完成',Color(0xFF5CB8A0), onTap: ()=> _completedTasks > 0 ? PresenceTab.jump(2,1) : null),
         _sc('$_learnedSkills','学习',HermesTheme.gold),
         _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=> _unreadMsg > 0 ? PresenceTab.jump(2) : null),
       ])),
