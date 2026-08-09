@@ -41,6 +41,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _startRecording();
     } else if (_voiceState == 'listening') {
       _stopRecording();
+    } else {
+      // speaking或其他→强制回到idle
+      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     }
   }
 
