@@ -88,7 +88,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 上传录音到语音API
-      final uri = Uri.parse('http://symbio.xin:8898/voice');
+      final uri = Uri.parse('http://symbio.xin/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
       final response = await request.send().timeout(Duration(seconds: 30));
