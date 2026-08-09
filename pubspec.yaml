@@ -27,10 +27,8 @@ dependencies:
   # 设备信息（设备指纹·配对标识）
   device_info_plus: ^10.1.0
 
-  # 语音: 录音+播放+路径
-  record: ^5.2.1
+  # 语音: 播放(录音待修复record版本冲突)
   audioplayers: ^6.0.0
-  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_test:
