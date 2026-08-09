@@ -27,10 +27,6 @@ dependencies:
   # 设备信息（设备指纹·配对标识）
   device_info_plus: ^10.1.0
 
-  # 语音播放
-  audioplayers: ^6.0.0
-  path_provider: ^2.1.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
