@@ -225,9 +225,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 8),
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
-        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=>PresenceTab.jump(2,1)),
+        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=> _completedTasks > 0 ? PresenceTab.jump(2,1) : null),
         _sc('$_learnedSkills','学习',HermesTheme.gold),
-        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=>PresenceTab.jump(2)),
+        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=> _unreadMsg > 0 ? PresenceTab.jump(2) : null),
       ])),
       SizedBox(height: 12),
       // 聊天入口

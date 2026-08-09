@@ -165,7 +165,9 @@ class _GalaxyTabState extends State<GalaxyTab> with SingleTickerProviderStateMix
     ]),
   );
 
-  Widget _agentRow(String name, String icon, Color c) => InkWell(
+  Widget _agentRow(String name, String icon, Color c) => SizedBox(
+    height: 52,
+    child: InkWell(
     onTap: (){
       HapticFeedback.selectionClick();
       final ctrl = TextEditingController();
@@ -202,7 +204,7 @@ class _GalaxyTabState extends State<GalaxyTab> with SingleTickerProviderStateMix
       ));
     },
     child: Padding(
-    padding: EdgeInsets.symmetric(vertical: 6),
+    padding: EdgeInsets.symmetric(vertical: 14),
     child: Row(children: [
       Text(icon, style: TextStyle(fontSize: 16)),
       SizedBox(width: 12),
@@ -210,6 +212,7 @@ class _GalaxyTabState extends State<GalaxyTab> with SingleTickerProviderStateMix
       Spacer(),
       Container(width: 8, height: 8, decoration: BoxDecoration(color: c.withAlpha(100), shape: BoxShape.circle)),
     ]),
+  ),
   ),
 );
 

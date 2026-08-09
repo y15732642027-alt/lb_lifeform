@@ -81,6 +81,22 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     setState(() { _loading = false; _busy = false; });
   }
 
+  void _showDetail(String type, Map<String,dynamic> item) {
+    showDialog(context: context, builder: (_) => AlertDialog(
+        backgroundColor: Color(0xFF0A0A10),
+        title: Text('$type详情', style: TextStyle(color: HermesTheme.gold, fontSize: 16)),
+        content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            for (final e in item.entries)
+              if (e.key != 'id')
+                Padding(padding: EdgeInsets.only(bottom:8), child: RichText(text: TextSpan(children: [
+                    TextSpan(text: '${e.key}: ', style: TextStyle(color: Colors.white54, fontSize:13)),
+                    TextSpan(text: '${e.value}', style: TextStyle(color: Colors.white, fontSize:13)),
+                ]))),
+        ])),
+        actions: [TextButton(onPressed: ()=>Navigator.pop(context), child: Text('关闭', style: TextStyle(color: HermesTheme.gold)))],
+    ));
+  }
+
   Future<void> _approve(String id, String action) async {
     try {
       await http.post(Uri.parse('$_base/respond'), headers: {'Content-Type':'application/json'}, body: jsonEncode({'id':id,'action':action}));
@@ -89,15 +105,25 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     setState(() { _approvals.removeWhere((a)=>a['id']==id); });
   }
 
-  void _sendMsg(String text) {
+    Future<void> _sendMsg(String text) async {
     if(text.trim().isEmpty) return;
     setState((){
       _conversations.add({'role':'me','text':text});
-      _conversations.add({'role':'bulb','text':'收到: $text'});
     });
     _chatCtrl.clear();
+    try {
+      final resp = await http.post(
+        Uri.parse('http://symbio.xin/v1/chat/completions'),
+        headers: {'Content-Type':'application/json','Authorization':'Bearer voice-bridge-key-2026'},
+        body: jsonEncode({'model':'deepseek-v4-flash','messages':[{'role':'user','content':text}],'max_tokens':200}),
+      ).timeout(Duration(seconds:30));
+      final data = jsonDecode(resp.body);
+      final reply = (data['choices']??[]).isNotEmpty ? data['choices'][0]['message']['content']??'(空)' : '(无回复)';
+      if(mounted) setState((){ _conversations.add({'role':'bulb','text':reply}); });
+    } catch(e) {
+      if(mounted) setState((){ _conversations.add({'role':'bulb','text':'灯泡暂时无法连接'}); });
+    }
   }
-
   void switchTo(int tab) => _tabController.animateTo(tab);
 
   Widget _buildTaskList() {
@@ -113,7 +139,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
         final elapsed = _timeSince(t['time'] ?? '');
         final eta = st == 'running' ? '约${(elapsed*0.5).round()}分' : st == 'done' ? '已完成' : '等待中';
         return GestureDetector(
-          onTap: () => setState(() => _expanded = _expanded == i ? null : i),
+          onTap: () => _showDetail('任务', t),
           child: Card(
           color: Color(0xFF0D0D12),
           margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
