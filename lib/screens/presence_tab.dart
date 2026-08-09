@@ -51,7 +51,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     try {
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
-      await _recorder.start(const RecordConfig(), path: _recordPath!);
+      // aacLc iOS兼容·采样率16k·单声道
+      await _recorder.start(const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        sampleRate: 16000,
+        numChannels: 1,
+        bitRate: 64000,
+      ), path: _recordPath!);
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
