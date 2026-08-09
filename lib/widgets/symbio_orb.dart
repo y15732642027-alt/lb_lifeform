@@ -53,6 +53,7 @@ class SymbioOrbState extends State<SymbioOrb> with TickerProviderStateMixin {
   double _voiceEnergy = 0.0;
   final _start = DateTime.now().millisecondsSinceEpoch;
   double _elapsed = 0;
+  double? _blueStartTime; // null=默认金色, 非null→渐变蓝色
 
   final _particles = <_Particle3D>[];
 
@@ -139,11 +140,24 @@ class SymbioOrbState extends State<SymbioOrb> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final glow = _glowColor();
+    // 点击渐变: 0=金色 → 1=蓝色 (0.6秒过渡)
+    double blueProgress = 0.0;
+    if (_blueStartTime != null) {
+      blueProgress = ((_elapsed - _blueStartTime!) / 0.6).clamp(0.0, 1.0);
+    }
+    final glowRaw = _glowColor();
+    final glow = Color.lerp(glowRaw, const Color(0xFF60d0e8), blueProgress) ?? glowRaw;
 
     return GestureDetector(
       onTap: () {
-        setState(() => _touchScale = 1.12);
+        setState(() {
+          _touchScale = 1.12;
+          _blueStartTime = null; // 先金色
+        });
+        // 100ms后开始渐变蓝色
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() => _blueStartTime = _elapsed + 0.05);
+        });
         Future.delayed(const Duration(milliseconds: 350), () {
           if (mounted) setState(() => _touchScale = 1.0);
         });
@@ -180,6 +194,7 @@ class SymbioOrbState extends State<SymbioOrb> with TickerProviderStateMixin {
             touchVY: _touchVY,
             touched: _touched,
             elapsed: _elapsed,
+            blueProgress: blueProgress,
           ),
           size: Size(widget.size, widget.size),
         ),
@@ -194,7 +209,7 @@ class SymbioOrbState extends State<SymbioOrb> with TickerProviderStateMixin {
 class _OrbPainter3D extends CustomPainter {
   final List<_Particle3D> particles;
   final Color glowColor;
-  final double scale, voiceEnergy, touchX, touchY, touchVX, touchVY, elapsed;
+  final double scale, voiceEnergy, touchX, touchY, touchVX, touchVY, elapsed, blueProgress;
   final String status, voiceState;
   final bool touched;
   final AnimationController breatheCtrl;
@@ -215,6 +230,7 @@ class _OrbPainter3D extends CustomPainter {
     this.touchVY = 0,
     this.touched = false,
     this.elapsed = 0,
+    this.blueProgress = 0,
   }) : super(repaint: Listenable.merge([breatheCtrl, rotateCtrl]));
 
   /// Y轴旋转矩阵
@@ -352,13 +368,15 @@ class _OrbPainter3D extends CustomPainter {
     // 按深度排序(远的先画)
     projected.sort((a, b) => b.depth.compareTo(a.depth));
 
-    // 暖金和银灰色定义
+    // 暖金和银灰色定义（点击后金色→冰蓝渐变）
     const goldColor = Color(0xFFD4A853);
+    const iceBlue = Color(0xFF60d0e8);
     const silverColor = Color(0xFFC0C0C0);
 
     for (final pp in projected) {
       final mix = pp.colorMix;
-      final particleColor = Color.lerp(goldColor, silverColor, mix)!;
+      final baseColor = Color.lerp(goldColor, iceBlue, blueProgress)!;
+      final particleColor = Color.lerp(baseColor, silverColor, mix)!;
       final alpha = pp.alpha.clamp(0.0, 1.0);
 
       // 粒子主体

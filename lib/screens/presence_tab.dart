@@ -1,6 +1,7 @@
 /// 首页·经典版·Listener替代GestureDetector防白框bug
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
@@ -31,6 +32,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   // 语音录制
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
+  WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
   StreamSubscription<RecordState>? _recSub;
@@ -41,33 +43,26 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _startRecording();
     } else if (_voiceState == 'listening') {
       _stopRecording();
-    } else {
-      // speaking或其他→强制回到idle
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     }
+    // processing状态时不做任何事
   }
 
   Future<void> _startRecording() async {
     try {
-      final hasPerm = await _recorder.hasPermission();
-      if (!hasPerm) {
-        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        return;
-      }
       final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        sampleRate: 16000,
-        numChannels: 1,
-      ), path: _recordPath!);
+      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+      await _recorder.start(const RecordConfig(), path: _recordPath!);
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
         if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
       });
     } catch (e) {
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+      print('[REC] 录音异常: $e');
+      if (mounted) {
+        setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音失败: 请检查麦克风'), duration: Duration(seconds:2)));
+      }
     }
   }
 
@@ -76,8 +71,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     if (_isRecording) {
       _isRecording = false;
       await _recorder.stop();
-      if (mounted) setState(() { _voiceState = 'speaking'; _voiceEnergy = 0.6; });
-    } else {
+      if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
+      await _processRecording();
       if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     }
   }
@@ -88,7 +83,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 上传录音到语音API
-      final uri = Uri.parse('http://symbio.xin/voice');
+      final uri = Uri.parse('http://localhost:8898/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
       final response = await request.send().timeout(Duration(seconds: 30));
@@ -109,14 +104,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
           final mp3Path = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
           final mp3File = File(mp3Path);
           await mp3File.writeAsBytes(mp3Bytes);
-          await _player.play(DeviceFileSource(mp3Path));
+          print('[AUDIO] 播放 '+mp3Path+' 长度='+mp3Bytes.length.toString()); await _player.play(DeviceFileSource(mp3Path));
         }
       }
     } catch (e) {
       print('语音处理失败: $e');
     }
 
-    if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
   }
   double _orbZoom = 1.0;
   Map<int,Offset> _orbPointers = {};
@@ -143,7 +137,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _timer = Timer.periodic(const Duration(seconds: 5), (_) { _fetchCounts(); });
   }
 
-  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.dispose(); _player.dispose(); super.dispose(); }
+  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.dispose(); _player.dispose(); _ws?.close(); super.dispose(); }
 
   void _fetchCounts() async {
     try {
@@ -205,18 +199,17 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
           setState((){});
         },
         onPointerUp:(e){_orbPointers.remove(e.pointer);if(_orbPointers.length<2){_orbInitDist=0;}},
-        child: Center(child: SymbioOrb(key: _orbKey, size: orbSize, status: 'online', voiceState: _voiceState, onTap: _toggleMic)),
+        child: Center(child: SymbioOrb(key: _orbKey, size: orbSize, status: 'online', voiceState: _voiceState)),
       )),
       SizedBox(height: 10),
+      // 麦克风·最简单
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        // 麦克风·Listener替代GestureDetector防白框bug
-        Listener(onPointerDown: (_) { HapticFeedback.mediumImpact(); _toggleMic(); },
-        child: Container(width: 56, height: 56,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: _voiceState != 'idle' ? HermesTheme.gold.withAlpha(40) : Colors.transparent, border: Border.all(color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white38, width: 1.5)),
-          child: Icon(_voiceState == 'listening' ? Icons.mic : _voiceState == 'speaking' ? Icons.volume_up : Icons.mic_none, color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54),
-        )),
+        IconButton(
+          icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
+          color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
+          onPressed: _toggleMic,
+        ),
         SizedBox(width: 12),
-        // 分身滚轮
         _agentDial(),
       ]),
       SizedBox(height: 5),

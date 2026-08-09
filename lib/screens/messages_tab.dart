@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
 
 class MessagesTab extends StatefulWidget {
@@ -20,13 +23,16 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   List<Map<String,dynamic>> _tasks = [], _approvals = [], _notifs = [];
   final List<Map<String,String>> _conversations = [];
   final _chatCtrl = TextEditingController();
+  final AudioRecorder _chatRecorder = AudioRecorder();
+  bool _isChatRecording = false;
+  String? _chatRecordPath;
   String _chatReply = '';
   final Set<String> _removed = {};
   int? _expanded;
   Timer? _timer;
   bool _loading = true;
   bool _busy = false;
-  final String _base = 'http://symbio.xin:8848';
+  final String _base = 'http://symbio.xin';
 
   @override
   void initState() {
@@ -38,7 +44,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   }
 
   @override
-  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); super.dispose(); }
+  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); _chatRecorder.dispose(); super.dispose(); }
 
   Future<void> _fetch() async {
     if (_busy) return;
@@ -54,7 +60,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     } catch (_) {}
     // Dispatched tasks from local
     try {
-      final r = await http.get(Uri.parse('http://symbio.xin:8899/dispatched')).timeout(Duration(seconds:3));
+      final r = await http.get(Uri.parse('http://symbio.xin/dispatched')).timeout(Duration(seconds:3));
       if (r.statusCode==200) {
         final d = jsonDecode(r.body);
         if (d is List) {
@@ -80,7 +86,6 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     } catch (_) {}
     setState(() { _loading = false; _busy = false; });
   }
-
   void _showDetail(String type, Map<String,dynamic> item) {
     showDialog(context: context, builder: (_) => AlertDialog(
         backgroundColor: Color(0xFF0A0A10),
@@ -104,26 +109,60 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     _removed.add(id);
     setState(() { _approvals.removeWhere((a)=>a['id']==id); });
   }
+  Future<void> _startChatRecording() async {
+    try{
+      final dir = await getApplicationDocumentsDirectory();
+      _chatRecordPath = dir.path+'/chat_'+DateTime.now().millisecondsSinceEpoch.toString()+'.m4a';
+      await _chatRecorder.start(const RecordConfig(sampleRate:16000,numChannels:1), path:_chatRecordPath!);
+      setState((){ _isChatRecording=true; });
+    }catch(e){
+      setState((){ _isChatRecording=false; });
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音启动失败: $e')));
+    }
+  }
 
-    Future<void> _sendMsg(String text) async {
+  Future<void> _stopChatRecording() async {
+    try{
+      await _chatRecorder.stop();
+      setState((){ _isChatRecording=false; });
+      if(_chatRecordPath==null) return;
+      final f = File(_chatRecordPath!);
+      if(!await f.exists()) return;
+      final uri = Uri.parse('http://localhost:8898/voice');
+      final req = http.MultipartRequest('POST', uri);
+      req.files.add(await http.MultipartFile.fromPath('file', _chatRecordPath!));
+      final resp = await req.send().timeout(Duration(seconds:30));
+      final body = await resp.stream.bytesToString();
+      if(resp.statusCode==200){
+        final data = jsonDecode(body);
+        setState((){
+          _conversations.add({'role':'me','text':'🎤 '+(data['text']??'(语音)')});
+          _conversations.add({'role':'bulb','text':data['reply']??data['text']??'...'});
+        });
+      }
+    }catch(_){}
+  }
+
+  Future<void> _sendMsg(String text) async {
     if(text.trim().isEmpty) return;
     setState((){
       _conversations.add({'role':'me','text':text});
     });
     _chatCtrl.clear();
-    try {
+    try{
       final resp = await http.post(
         Uri.parse('http://symbio.xin/v1/chat/completions'),
-        headers: {'Content-Type':'application/json','Authorization':'Bearer voice-bridge-key-2026'},
-        body: jsonEncode({'model':'deepseek-v4-flash','messages':[{'role':'user','content':text}],'max_tokens':200}),
+        headers:{'Content-Type':'application/json','Authorization':'Bearer voice-bridge-key-2026'},
+        body:jsonEncode({'model':'deepseek-v4-flash','messages':[{'role':'user','content':text}],'max_tokens':200}),
       ).timeout(Duration(seconds:30));
       final data = jsonDecode(resp.body);
       final reply = (data['choices']??[]).isNotEmpty ? data['choices'][0]['message']['content']??'(空)' : '(无回复)';
       if(mounted) setState((){ _conversations.add({'role':'bulb','text':reply}); });
-    } catch(e) {
+    }catch(e){
       if(mounted) setState((){ _conversations.add({'role':'bulb','text':'灯泡暂时无法连接'}); });
     }
   }
+
   void switchTo(int tab) => _tabController.animateTo(tab);
 
   Widget _buildTaskList() {
@@ -213,7 +252,13 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
             },
           )),
           Container(padding:EdgeInsets.all(8),child:Row(children:[
-            Expanded(child:TextField(controller:_chatCtrl,style:TextStyle(color:Colors.white),decoration:InputDecoration(hintText:'输入...',hintStyle:TextStyle(color:Colors.white24),border:InputBorder.none,contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:8)),onSubmitted:_sendMsg)),
+            Expanded(child:TextField(controller:_chatCtrl,style:TextStyle(color:Colors.white),decoration:InputDecoration(hintText:'输入...',hintStyle:TextStyle(color:Colors.white24),border:InputBorder.none,contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:8)),onSubmitted:(v){if(v.trim().isNotEmpty)_sendMsg(v);})),
+            _isChatRecording ? 
+              Row(mainAxisSize:MainAxisSize.min, children:[
+                Container(margin:EdgeInsets.only(right:4), child:Text('🎤',style:TextStyle(fontSize:14))),
+                IconButton(icon:Icon(Icons.stop,color:Color(0xFFef4444)), onPressed:_stopChatRecording),
+              ]) :
+              IconButton(icon:Icon(Icons.mic,color:HermesTheme.gold.withAlpha(150)), onPressed:_startChatRecording),
             IconButton(icon:Icon(Icons.send,color:HermesTheme.gold),onPressed:(){HapticFeedback.mediumImpact();_sendMsg(_chatCtrl.text);}),
           ])),
         ]),
