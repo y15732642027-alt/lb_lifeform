@@ -88,7 +88,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 上传录音到语音API
-      final uri = Uri.parse('http://symbio.xin/voice');
+      final uri = Uri.parse('http://symbio.xin:8898/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
       final response = await request.send().timeout(Duration(seconds: 30));
@@ -169,7 +169,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _fetchStatus() async {
     try {
-      final r = await http.get(Uri.parse('http://symbio.xin/health')).timeout(Duration(seconds: 3));
+      final r = await http.get(Uri.parse('http://symbio.xin:8848/health')).timeout(Duration(seconds: 3));
       if (r.statusCode == 200) setState(() { _statusDetail = '所有系统正常'; return; });
     } catch (_) {}
     setState(() { _statusDetail = '白鼠未响应·本地运行中'; });
@@ -225,9 +225,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 8),
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
-        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=> _completedTasks > 0 ? PresenceTab.jump(2,1) : null),
+        _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=>PresenceTab.jump(2,1)),
         _sc('$_learnedSkills','学习',HermesTheme.gold),
-        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=> _unreadMsg > 0 ? PresenceTab.jump(2) : null),
+        _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=>PresenceTab.jump(2)),
       ])),
       SizedBox(height: 12),
       // 聊天入口
