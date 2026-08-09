@@ -56,7 +56,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         encoder: AudioEncoder.aacLc,
         sampleRate: 16000,
         numChannels: 1,
-        bitRate: 64000,
+        
       ), path: _recordPath!);
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
