@@ -5,8 +5,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-// record导入已移除·录音待修复
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
 import '../widgets/symbio_orb.dart';
 
@@ -27,8 +31,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  // final AudioRecorder _recorder = AudioRecorder();
+  final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<RecordState>? _recSub;
   bool _isRecording = false;
   String? _recordPath;
 
@@ -42,17 +47,20 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   Future<void> _startRecording() async {
-    if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
-    _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
-      if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
-    });
-    // 录音待修复(record插件版本冲突)·先占位
-    return;
-  }
-  // 下面旧代码暂时保留·record修复后恢复
-  Future<void> __old_startRecording() async {
     try {
       final hasPerm = await _recorder.hasPermission();
+      if (!hasPerm) {
+        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        return;
+      }
+      final dir = await getApplicationDocumentsDirectory();
+      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _recorder.start(const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        sampleRate: 16000,
+        numChannels: 1,
+      ), path: _recordPath!);
+      _isRecording = true;
       if (!hasPerm) {
         if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
         return;
@@ -78,7 +86,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _voiceTimer?.cancel();
     if (_isRecording) {
       _isRecording = false;
-      // await _recorder.stop();
+      await _recorder.stop();
       if (mounted) setState(() { _voiceState = 'speaking'; _voiceEnergy = 0.6; });
     } else {
       if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
@@ -87,8 +95,29 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Future<void> _processRecording() async {
     _voiceTimer?.cancel();
-    // 录音功能待修复·先占位
-    print('录音处理待修复')
+    if (_recordPath == null) return;
+    try {
+      final uri = Uri.parse('http://192.168.1.4:8898/voice');
+      final request = http.MultipartRequest('POST', uri);
+      request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
+      final response = await request.send().timeout(Duration(seconds: 30));
+      final body = await response.stream.bytesToString();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(body);
+        final reply = data['reply'] ?? '';
+        final audioB64 = data['audio'] ?? '';
+        if (audioB64.isNotEmpty) {
+          final mp3Bytes = base64Decode(audioB64);
+          final dir = await getApplicationDocumentsDirectory();
+          final mp3Path = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
+          final mp3File = File(mp3Path);
+          await mp3File.writeAsBytes(mp3Bytes);
+          await _player.play(DeviceFileSource(mp3Path));
+        }
+      }
+    } catch (e) {
+      print('语音处理失败: $e');
+    }
 
     if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
   }
