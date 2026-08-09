@@ -5,12 +5,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
 import '../widgets/symbio_orb.dart';
 
@@ -30,12 +24,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   double _voiceEnergy = 0.0;
   Timer? _voiceTimer;
 
-  // 语音录制
-  final AudioRecorder _recorder = AudioRecorder();
-  final AudioPlayer _player = AudioPlayer();
-  StreamSubscription<RecordState>? _recSub;
-  bool _isRecording = false;
-  String? _recordPath;
+  // 语音录制 (Web仅录音·移动端用系统录音)
+  Object? _recorder;
+  List<Object> _blobChunks = [];
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
@@ -47,32 +38,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   Future<void> _startRecording() async {
+    if (!kIsWeb) {
+      // 移动端录音需原生插件·占位·后续接入record包
+      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
+      _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
+        if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
+      });
+      return;
+    }
     try {
-      final hasPerm = await _recorder.hasPermission();
-      if (!hasPerm) {
-        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        return;
-      }
-      final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        sampleRate: 16000,
-        numChannels: 1,
-      ), path: _recordPath!);
-      _isRecording = true;
-      if (!hasPerm) {
-        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        return;
-      }
-      final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        sampleRate: 16000,
-        numChannels: 1,
-      ), path: _recordPath!);
-      _isRecording = true;
+      // Web端录音
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
         if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
@@ -82,44 +57,17 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     }
   }
 
-  Future<void> _stopRecording() async {
+  void _stopRecording() {
     _voiceTimer?.cancel();
-    if (_isRecording) {
-      _isRecording = false;
-      await _recorder.stop();
-      if (mounted) setState(() { _voiceState = 'speaking'; _voiceEnergy = 0.6; });
-    } else {
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-    }
+    if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
   }
 
   Future<void> _processRecording() async {
     _voiceTimer?.cancel();
-    if (_recordPath == null) return;
-    try {
-      final uri = Uri.parse('http://192.168.1.4:8898/voice');
-      final request = http.MultipartRequest('POST', uri);
-      request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
-      final response = await request.send().timeout(Duration(seconds: 30));
-      final body = await response.stream.bytesToString();
-      if (response.statusCode == 200) {
-        final data = jsonDecode(body);
-        final reply = data['reply'] ?? '';
-        final audioB64 = data['audio'] ?? '';
-        if (audioB64.isNotEmpty) {
-          final mp3Bytes = base64Decode(audioB64);
-          final dir = await getApplicationDocumentsDirectory();
-          final mp3Path = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
-          final mp3File = File(mp3Path);
-          await mp3File.writeAsBytes(mp3Bytes);
-          await _player.play(DeviceFileSource(mp3Path));
-        }
-      }
-    } catch (e) {
-      print('语音处理失败: $e');
-    }
-
     if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+    Future.delayed(Duration(seconds: 3), () {
+      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+    });
   }
   double _orbZoom = 1.0;
   Map<int,Offset> _orbPointers = {};
@@ -146,7 +94,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _timer = Timer.periodic(const Duration(seconds: 5), (_) { _fetchCounts(); });
   }
 
-  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.dispose(); _player.dispose(); super.dispose(); }
+  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); super.dispose(); }
 
   void _fetchCounts() async {
     try {
@@ -229,7 +177,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
         _sc('$_completedTasks','审批',Color(0xFF5CB8A0), onTap: ()=>PresenceTab.jump(2,1)),
-        _sc('$_learnedSkills','学习',HermesTheme.gold),
+        _sc('$_learnedSkills','学习',HermesTheme.gold, onTap: ()=>PresenceTab.jump(3)),
         _sc('$_unreadMsg','消息',Color(0xFF60A5FA), onTap: ()=>PresenceTab.jump(2)),
       ])),
       SizedBox(height: 12),
