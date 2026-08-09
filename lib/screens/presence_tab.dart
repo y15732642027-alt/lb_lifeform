@@ -88,7 +88,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 上传录音到语音API
-      final uri = Uri.parse('http://symbio.xin:8898/voice');
+      final uri = Uri.parse('http://symbio.xin/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
       final response = await request.send().timeout(Duration(seconds: 30));
@@ -169,7 +169,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _fetchStatus() async {
     try {
-      final r = await http.get(Uri.parse('http://symbio.xin:8848/health')).timeout(Duration(seconds: 3));
+      final r = await http.get(Uri.parse('http://symbio.xin/health')).timeout(Duration(seconds: 3));
       if (r.statusCode == 200) setState(() { _statusDetail = '所有系统正常'; return; });
     } catch (_) {}
     setState(() { _statusDetail = '白鼠未响应·本地运行中'; });
