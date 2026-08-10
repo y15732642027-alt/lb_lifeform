@@ -38,14 +38,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   String? _recordPath;
   StreamSubscription<RecordState>? _recSub;
 
-  void _toggleMic() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
-    HapticFeedback.mediumImpact();
-    if (_voiceState == 'idle') {
-      _startWebRTC();
-    } else {
-      _stopWebRTC();
-    }
+  void _startVoice() {
+    if (_voiceState == 'idle') _startWebRTC();
+  }
+  void _stopVoice() {
+    if (_voiceState != 'idle') _stopWebRTC();
   }
 
   Future<void> _startRecording() async {
@@ -221,7 +218,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         IconButton(
           icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
           color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
-          onPressed: _toggleMic,
+          onLongPressStart: (_) => _startVoice(),
+            onLongPressEnd: (_) => _stopVoice(),
+            onLongPress: (){} // 空·防止默认,
         ),
         SizedBox(width: 12),
         _agentDial(),
@@ -354,6 +353,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _audioSub = stream.listen((data) {
         if (_voice?.isConnected == true) {
           _voice!.send(data);
+          // 光球随音量震动
+          if (mounted && data.length > 0) {
+            final energy = data[0].abs() / 128.0;
+            setState(() => _voiceEnergy = 0.3 + energy * 0.7);
+          }
         }
       });
     } catch (e) {
