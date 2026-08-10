@@ -22,6 +22,8 @@ class PresenceTab extends StatefulWidget {
   State<PresenceTab> createState() => _PresenceTabState();
 }
 
+  String _tempRecordPath() => '\${(()=>getTemporaryDirectory)()}/test2800.m4a';
+
 class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStateMixin {
   late AnimationController _orbCtrl;
   String _greeting = '', _statusDetail = '所有系统正常';
