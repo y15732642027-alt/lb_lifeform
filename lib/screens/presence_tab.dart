@@ -39,6 +39,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('按钮在动·当前状态:$_voiceState'), duration: Duration(seconds:2)));
     if (_voiceState == 'idle') {
       _startRecording();
     } else if (_voiceState == 'listening') {
@@ -96,7 +97,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 上传录音到语音API
-      final uri = Uri.parse('http://localhost:8898/voice');
+      final uri = Uri.parse('http://symbio.xin/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
       final response = await request.send().timeout(Duration(seconds: 30));

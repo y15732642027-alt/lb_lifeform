@@ -128,7 +128,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
       if(_chatRecordPath==null) return;
       final f = File(_chatRecordPath!);
       if(!await f.exists()) return;
-      final uri = Uri.parse('http://localhost:8898/voice');
+      final uri = Uri.parse('http://symbio.xin/voice');
       final req = http.MultipartRequest('POST', uri);
       req.files.add(await http.MultipartFile.fromPath('file', _chatRecordPath!));
       final resp = await req.send().timeout(Duration(seconds:30));
