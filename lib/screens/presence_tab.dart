@@ -333,13 +333,24 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   StreamSubscription? _audioSub;
 
   Future<void> _startAudioStream() async {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('启动录音...'), duration: Duration(seconds:1)));
+    }
     try {
-      final stream = await _recorder.startStream(RecordConfig(
-        encoder: AudioEncoder.wav,
+      // 先检查权限
+      final hasPerm = await _recorder.hasPermission();
+      if (!hasPerm) {
+        throw '无麦克风权限';
+      }
+      final stream = await _recorder.startStream(const RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
         sampleRate: 16000,
         numChannels: 1,
       ));
       print('AUDIO_STREAM_STARTED');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音已启动·正在发送'), duration: Duration(seconds:2)));
+      }
       _audioSub = stream.listen((data) {
         if (_voice?.isConnected == true) {
           _voice!.send(data);
@@ -348,7 +359,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     } catch (e) {
       print('AUDIO_STREAM_FAIL: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音启动失败: $e'), duration: Duration(seconds:3)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音失败: $e'), duration: Duration(seconds:5)));
       }
     }
   }
