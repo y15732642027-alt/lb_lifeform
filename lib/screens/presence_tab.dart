@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -31,12 +31,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+  final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
-  StreamSubscription<Food>? _recSub;
+  StreamSubscription<RecordState>? _recSub;
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
@@ -59,7 +59,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.startRecorder(toStream: _foodStreamController!.sink, codec: Codec.pcm16(
+      await _recorder.start(const RecordConfig(
         encoder: AudioEncoder.wav,
         sampleRate: 44100,
         numChannels: 1,
