@@ -16,10 +16,9 @@ workflows:
           echo "PRIVATE_KEY开头: ${APP_STORE_CONNECT_PRIVATE_KEY:0:20}"
       - name: 获取依赖
         script: flutter pub get
-            - name: 设置构建版本
-        script: |
-          agvtool new-version -all 20
-- name: 初始化签名钥匙串
+      - name: 设置构建版本
+        script: agvtool new-version -all 21
+      - name: 初始化签名钥匙串
         script: |
           keychain initialize
       - name: 拉取签名证书
