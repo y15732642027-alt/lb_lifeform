@@ -39,10 +39,17 @@ class WebRTCVoiceClient {
     _ws!.add(jsonEncode({'type': 'offer', 'sdp': offer.sdp}));
 
     // 信令循环
+    // 单一监听器——合并信令+ICE
     _ws!.listen((data) {
       final msg = jsonDecode(data as String);
       if (msg['type'] == 'answer') {
         _pc!.setRemoteDescription(RTCSessionDescription(msg['sdp'], 'answer'));
+      } else if (msg['type'] == 'ice') {
+        _pc!.addCandidate(RTCIceCandidate(
+          msg['candidate']['candidate'],
+          msg['candidate']['sdpMid'],
+          msg['candidate']['sdpMLineIndex'],
+        ));
       } else if (msg['type'] == 'stt' || msg['type'] == 'tts') {
         onMessage?.call(msg['type'], msg['text']);
       }
@@ -63,19 +70,6 @@ class WebRTCVoiceClient {
         }));
       }
     };
-
-    _ws!.listen((data) {
-      if (data is String) {
-        final msg = jsonDecode(data);
-        if (msg['type'] == 'ice') {
-          _pc!.addCandidate(RTCIceCandidate(
-            msg['candidate'],
-            msg['sdpMid'],
-            msg['sdpMLineIndex'],
-          ));
-        }
-      }
-    });
   }
 
   Future<void> disconnect() async {
