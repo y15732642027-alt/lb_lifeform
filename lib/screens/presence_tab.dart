@@ -6,12 +6,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:record/record.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
-import '../core/webrtc_voice.dart';
+import '../core/voice_stream.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
@@ -31,12 +31,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  final AudioRecorder _recorder = AudioRecorder();
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
-  StreamSubscription<RecordState>? _recSub;
+  StreamSubscription<Food>? _recSub;
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
@@ -59,7 +59,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
+      await _recorder.startRecorder(toStream: _foodStreamController!.sink, codec: Codec.pcm16(
         encoder: AudioEncoder.wav,
         sampleRate: 44100,
         numChannels: 1,
@@ -302,13 +302,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         ]));
         }
 
-        WebRTCVoiceClient? _rtcClient;
+        VoiceStream? _voice;
 
         Future<void> _startWebRTC() async {
         if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
         try {
-        _rtcClient = WebRTCVoiceClient();
-        _rtcClient!.onMessage = (type, data) {
+        _voice = VoiceStream();
+        _voice!.onMessage = (type, data) {
           if (type == 'stt') {
             if (mounted) setState(() { _voiceEnergy = 0.8; });
           } else if (type == 'tts') {
@@ -318,7 +318,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
             });
           }
         };
-        await _rtcClient!.connect('wss://ws.symbio.xin');
+        await _voice!.connect('wss://ws.symbio.xin');
         if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
         } catch (e) {
         if (mounted) {
@@ -329,8 +329,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         }
 
         Future<void> _stopWebRTC() async {
-        await _rtcClient?.disconnect();
-        _rtcClient = null;
+        await _voice?.disconnect();
+        _voice = null;
         if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
         }
         }
