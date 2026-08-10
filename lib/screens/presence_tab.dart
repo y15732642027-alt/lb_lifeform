@@ -11,6 +11,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
+import '../core/webrtc_voice.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
@@ -39,13 +40,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('按钮在动·当前状态:$_voiceState'), duration: Duration(seconds:2)));
     if (_voiceState == 'idle') {
-      _startRecording();
-    } else if (_voiceState == 'listening') {
-      _stopRecording();
+      _startWebRTC();
+    } else if (_voiceState == 'connected') {
+      _stopWebRTC();
     }
-    // processing状态时不做任何事
   }
 
   Future<void> _startRecording() async {
@@ -299,7 +298,39 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         Icon(Icons.circle, size: 4, color: HermesTheme.gold),
         SizedBox(width: 6),
         Text(m, style: TextStyle(color: Colors.white54, fontSize: 12)),
-      ]))),
-    ]));
-  }
-}
+        ]))),
+        ]));
+        }
+
+        WebRTCVoiceClient? _rtcClient;
+
+        Future<void> _startWebRTC() async {
+        if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
+        try {
+        _rtcClient = WebRTCVoiceClient();
+        _rtcClient!.onMessage = (type, data) {
+          if (type == 'stt') {
+            if (mounted) setState(() { _voiceEnergy = 0.8; });
+          } else if (type == 'tts') {
+            if (mounted) setState(() { _voiceState = 'responding'; _voiceEnergy = 1.0; });
+            Future.delayed(Duration(seconds: 2), () {
+              if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
+            });
+          }
+        };
+        await _rtcClient!.connect('wss://ws.symbio.xin');
+        if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
+        } catch (e) {
+        if (mounted) {
+          setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('WebRTC: $e'), duration: Duration(seconds:3)));
+        }
+        }
+        }
+
+        Future<void> _stopWebRTC() async {
+        await _rtcClient?.disconnect();
+        _rtcClient = null;
+        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        }
+        }
