@@ -6,11 +6,11 @@ publish_to: none
 environment:
   sdk: ^3.6.0
   flutter: ^3.27.0
-  record: ^6.2.1
+  flutter_sound: ^9.17.8
 
 dependencies:
   flutter:
-  record: ^6.2.1
+  flutter_sound: ^9.17.8
     sdk: flutter
   http: ^1.2.0
   web_socket_channel: ^3.0.0
@@ -27,5 +27,5 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
-  record: ^6.2.1
+  flutter_sound: ^9.17.8
   uses-material-design: true

@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:record/record.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -31,12 +31,14 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  final AudioRecorder _recorder = AudioRecorder();
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+    _foodController = StreamController<Food>();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
-  StreamSubscription<RecordState>? _recSub;
+  StreamSubscription<Food>? _recSub;
+  StreamController<Food>? _foodController;
 
   void _toggleMic() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
@@ -60,8 +62,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.wav,
+      await _recorder.start(const dynamic(
+        encoder: Codec.pcm16,
         sampleRate: 44100,
         numChannels: 1,
         
@@ -84,7 +86,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _voiceTimer?.cancel();
     if (_isRecording) {
       _isRecording = false;
-      await _recorder.stop();
+      await _recorder.stopRecorder();
       if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
       await _processRecording();
       if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
@@ -151,7 +153,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _timer = Timer.periodic(const Duration(seconds: 5), (_) { _fetchCounts(); });
   }
 
-  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.dispose(); _player.dispose(); _ws?.close(); super.dispose(); }
+  @override void dispose(){ _orbCtrl.closeRecorder(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.closeRecorder(); _player.closeRecorder(); _ws?.close(); super.closeRecorder(); }
 
   void _fetchCounts() async {
     try {
