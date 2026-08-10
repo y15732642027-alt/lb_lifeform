@@ -11,7 +11,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
-import '../core/voice_stream.dart';
+import '../core/webrtc_voice.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
@@ -38,11 +38,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   String? _recordPath;
   StreamSubscription<RecordState>? _recSub;
 
-  void _startVoice() {
-    if (_voiceState == 'idle') _startWebRTC();
-  }
-  void _stopVoice() {
-    if (_voiceState != 'idle') _stopWebRTC();
+  void _toggleMic() {
+    HapticFeedback.mediumImpact();
+    if (_voiceState == 'idle') {
+      _startWebRTC();
+    } else if (_voiceState == 'connected') {
+      _stopWebRTC();
+    }
   }
 
   Future<void> _startRecording() async {
@@ -218,18 +220,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         IconButton(
           icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
           color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
-                      // 按住说话
-            onPressed: () {
-              if (_voiceState == 'idle') {
-                _startWebRTC();
-              } else if (_voiceState == 'connected') {
-                _stopWebRTC();
-              }
-            },
-            icon: Icon(Icons.mic, color: Colors.white),
-              onPointerUp: (_) => _stopVoice(),
-              child: Icon(Icons.mic, color: Colors.white),
-            ),
+          onPressed: _toggleMic,
         ),
         SizedBox(width: 12),
         _agentDial(),
@@ -311,13 +302,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         ]));
         }
 
-        VoiceStream? _voice;
+        WebRTCVoiceClient? _rtcClient;
 
         Future<void> _startWebRTC() async {
         if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
         try {
-        _voice = VoiceStream();
-        _voice!.onMessage = (type, data) {
+        _rtcClient = WebRTCVoiceClient();
+        _rtcClient!.onMessage = (type, data) {
           if (type == 'stt') {
             if (mounted) setState(() { _voiceEnergy = 0.8; });
           } else if (type == 'tts') {
@@ -327,7 +318,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
             });
           }
         };
-        await _voice!.connect('wss://ws.symbio.xin');
+        await _rtcClient!.connect('wss://ws.symbio.xin');
         if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
         } catch (e) {
         if (mounted) {
@@ -337,49 +328,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         }
         }
 
-        
-  StreamSubscription? _audioSub;
-
-  Future<void> _startAudioStream() async {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('启动录音...'), duration: Duration(seconds:1)));
-    }
-    try {
-      // 先检查权限
-      final hasPerm = await _recorder.hasPermission();
-      if (!hasPerm) {
-        throw '无麦克风权限';
-      }
-      final stream = await _recorder.startStream(const RecordConfig(
-        encoder: AudioEncoder.pcm16bits,
-        sampleRate: 16000,
-        numChannels: 1,
-      ));
-      print('AUDIO_STREAM_STARTED');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音已启动·正在发送'), duration: Duration(seconds:2)));
-      }
-      _audioSub = stream.listen((data) {
-        if (_voice?.isConnected == true) {
-          _voice!.send(data);
-          // 光球随音量震动
-          if (mounted && data.length > 0) {
-            final energy = data[0].abs() / 128.0;
-            setState(() => _voiceEnergy = 0.3 + energy * 0.7);
-          }
-        }
-      });
-    } catch (e) {
-      print('AUDIO_STREAM_FAIL: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音失败: $e'), duration: Duration(seconds:5)));
-      }
-    }
-  }
-
-Future<void> _stopWebRTC() async {
-        await _voice?.disconnect();
-        _voice = null;
+        Future<void> _stopWebRTC() async {
+        await _rtcClient?.disconnect();
+        _rtcClient = null;
         if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
         }
         }
