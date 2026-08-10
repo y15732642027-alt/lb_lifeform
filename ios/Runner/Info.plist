@@ -52,5 +52,12 @@
 	<string>共生体需要用麦克风和你对话</string>
 	<key>NSCameraUsageDescription</key>
 	<string>需要使用相机进行实时语音视觉交互</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>需要访问本地网络以连接语音服务</string>
 </dict>
 </plist>
