@@ -329,7 +329,31 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         }
         }
 
-        Future<void> _stopWebRTC() async {
+        
+  StreamSubscription? _audioSub;
+
+  Future<void> _startAudioStream() async {
+    try {
+      final stream = await _recorder.startStream(RecordConfig(
+        encoder: AudioEncoder.wav,
+        sampleRate: 16000,
+        numChannels: 1,
+      ));
+      print('AUDIO_STREAM_STARTED');
+      _audioSub = stream.listen((data) {
+        if (_voice?._ws != null) {
+          _voice!.send(data);
+        }
+      });
+    } catch (e) {
+      print('AUDIO_STREAM_FAIL: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音启动失败: $e'), duration: Duration(seconds:3)));
+      }
+    }
+  }
+
+Future<void> _stopWebRTC() async {
         await _voice?.disconnect();
         _voice = null;
         if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
