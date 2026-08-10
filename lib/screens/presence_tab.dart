@@ -218,10 +218,15 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         IconButton(
           icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
           color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
-          onPressed: null,
-            // 使用Listener包装长按
-            child: Listener(
-              onPointerDown: (_) => _startVoice(),
+                      // 按住说话
+            onPressed: () {
+              if (_voiceState == 'idle') {
+                _startWebRTC();
+              } else if (_voiceState == 'connected') {
+                _stopWebRTC();
+              }
+            },
+            icon: Icon(Icons.mic, color: Colors.white),
               onPointerUp: (_) => _stopVoice(),
               child: Icon(Icons.mic, color: Colors.white),
             ),
