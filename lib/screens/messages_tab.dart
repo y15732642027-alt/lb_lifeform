@@ -44,7 +44,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   }
 
   @override
-  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); _chatRecorder.dispose(); super.dispose(); }
+  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); _chatRecorder.closeRecorder(); super.dispose(); }
 
   Future<void> _fetch() async {
     if (_busy) return;
@@ -113,7 +113,8 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     try{
       final dir = await getApplicationDocumentsDirectory();
       _chatRecordPath = dir.path+'/chat_'+DateTime.now().millisecondsSinceEpoch.toString()+'.m4a';
-      await _chatRecorder.start(const RecordConfig(sampleRate:16000,numChannels:1), path:_chatRecordPath!);
+      await _chatRecorder.openRecorder();
+      await _chatRecorder.startRecorder(toFile: _chatRecordPath!, codec: Codec.aacADTS, sampleRate: 16000, numChannels: 1);
       setState((){ _isChatRecording=true; });
     }catch(e){
       setState((){ _isChatRecording=false; });
@@ -123,7 +124,8 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
 
   Future<void> _stopChatRecording() async {
     try{
-      await _chatRecorder.stop();
+      await _chatRecorder.stopRecorder();
+      await _chatRecorder.closeRecorder();
       setState((){ _isChatRecording=false; });
       if(_chatRecordPath==null) return;
       final f = File(_chatRecordPath!);
