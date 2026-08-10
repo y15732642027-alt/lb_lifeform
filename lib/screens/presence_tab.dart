@@ -41,48 +41,36 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('按钮在动·当前状态:$_voiceState'), duration: Duration(seconds:2)));
-    if (_voiceState == 'idle') {
-      _startRecording();
-    } else if (_voiceState == 'listening') {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('点按钮·开始录音'), duration: Duration(seconds:1)));
+    if (_isRecording) {
       _stopRecording();
+    } else {
+      _startRecording();
     }
-    // processing状态时不做任何事
   }
 
-  Future<void> _startRecording() async {
+    Future<void> _startRecording() async {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🔴 启动录音...'), duration: Duration(seconds:2)));
     try {
-      // 激活iOS AudioSession
-      await _recorder.listInputDevices();
-      // 检查录音权限
-      final hasPerm = await _recorder.hasPermission();
-      if (!hasPerm) {
-        throw Exception('麦克风权限被拒绝·请在设置中开启');
-      }
+      // 最简文件录音——参考消息框能工作的方式
       final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
-      // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.wav,
-        sampleRate: 44100,
-        numChannels: 1,
-        
-      ), path: _recordPath!);
+      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('路径: $_recordPath'), duration: Duration(seconds:2)));
+      await _recorder.start(const RecordConfig(sampleRate:16000, numChannels:1), path: _recordPath!);
       _isRecording = true;
-      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
-      _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
-        if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
-      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ 录音启动OK'), duration: Duration(seconds:2)));
     } catch (e) {
-      final errMsg = e.toString();
-      if (mounted) {
-        setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音: $errMsg', maxLines:3), duration: Duration(seconds:4)));
-      }
-    }
-  }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ 录音失败: $e'), duration: Duration(seconds:5)));
 
-  Future<void> _stopRecording() async {
+Future<void> _stopRecording() async {
+    _voiceTimer?.cancel();
+    if (_isRecording) {
+      _isRecording = false;
+      await _recorder.stop();
+      if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
+      await _processRecording();
+      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+    }Future<void> _stopRecording() async {
     _voiceTimer?.cancel();
     if (_isRecording) {
       _isRecording = false;
