@@ -11,7 +11,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
-import '../core/voice_stream.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
@@ -39,13 +38,14 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   StreamSubscription<RecordState>? _recSub;
 
   void _toggleMic() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
     HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('按钮在动·当前状态:$_voiceState'), duration: Duration(seconds:2)));
     if (_voiceState == 'idle') {
-      _startWebRTC();
-    } else {
-      _stopWebRTC();
+      _startRecording();
+    } else if (_voiceState == 'listening') {
+      _stopRecording();
     }
+    // processing状态时不做任何事
   }
 
   Future<void> _startRecording() async {
@@ -189,38 +189,6 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     return (v[0]-v[1]).distance;
   }
 
-
-  void _diagRecord() async {
-    showDialog(context: context, barrierDismissible: false, builder: (_)=>AlertDialog(title:Text('测试中...')));
-    try {
-      final has = await _recorder.hasPermission();
-      if (!has) {
-        Navigator.pop(context);
-        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 权限未授予'), content:Text('去设置→隐私→麦克风→共生体→开'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
-        return;
-      }
-      Navigator.pop(context);
-      showDialog(context: context, builder: (_)=>AlertDialog(title:Text('✅ 权限OK·开始录音3秒...')));
-      // 文件录音模式——绕过流式API
-      final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/test_2400.m4a';
-      await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc, sampleRate:16000, numChannels:1), path: path);
-      await Future.delayed(Duration(seconds: 3));
-      final fpath = await _recorder.stop();
-      Navigator.pop(context);
-      if (fpath == null) {
-        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 录音返回null'), actions:[]));
-        return;
-      }
-      final file = File(fpath);
-      final size = await file.length();
-      showDialog(context: context, builder: (_)=>AlertDialog(title:Text(size > 1000 ? '✅ 文件${size}字节·录音OK': '❌ 文件${size}字节·太小'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
-    } catch(e) {
-      Navigator.pop(context);
-      showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ $e'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -331,39 +299,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         Icon(Icons.circle, size: 4, color: HermesTheme.gold),
         SizedBox(width: 6),
         Text(m, style: TextStyle(color: Colors.white54, fontSize: 12)),
-        ]))),
-        ]));
-        }
-
-        VoiceStream? _voice;
-
-        Future<void> _startWebRTC() async {
-        if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
-        try {
-        _voice = VoiceStream();
-        _voice!.onMessage = (type, data) {
-          if (type == 'stt') {
-            if (mounted) setState(() { _voiceEnergy = 0.8; });
-          } else if (type == 'tts') {
-            if (mounted) setState(() { _voiceState = 'responding'; _voiceEnergy = 1.0; });
-            Future.delayed(Duration(seconds: 2), () {
-              if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
-            });
-          }
-        };
-        await _voice!.connect('wss://ws.symbio.xin');
-        if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
-        } catch (e) {
-        if (mounted) {
-          setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('WebRTC: $e'), duration: Duration(seconds:3)));
-        }
-        }
-        }
-
-        Future<void> _stopWebRTC() async {
-        await _voice?.disconnect();
-        _voice = null;
-        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-        }
-        }
+      ]))),
+    ]));
+  }
+}
