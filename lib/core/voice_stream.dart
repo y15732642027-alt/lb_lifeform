@@ -23,8 +23,6 @@ class VoiceStream {
     });
   }
 
-  bool get isConnected => _ws != null;
-
   void send(List<int> pcmBytes) {
     _ws?.add(pcmBytes);
   }

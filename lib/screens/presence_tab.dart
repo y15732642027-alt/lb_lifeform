@@ -39,10 +39,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   StreamSubscription<RecordState>? _recSub;
 
   void _toggleMic() {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
     HapticFeedback.mediumImpact();
     if (_voiceState == 'idle') {
       _startWebRTC();
-    } else if (_voiceState == 'connected') {
+    } else {
       _stopWebRTC();
     }
   }
