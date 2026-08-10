@@ -53,7 +53,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       // 打开录音器
       await _recorder.openRecorder();
       // 创建PCM流控制器
-      final pcmController = StreamController<Food>();
+      final pcmController = StreamController<Uint8List>();
       // 监听PCM数据·通过VoiceStream发送
       _recSub = pcmController.stream.listen((food) {
         if (food is FoodData && _voice != null && _voice!.isConnected) {
