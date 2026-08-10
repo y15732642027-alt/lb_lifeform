@@ -42,7 +42,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     HapticFeedback.mediumImpact();
     if (_voiceState == 'idle') {
       _startWebRTC();
-    } else if (_voiceState == 'connected') {
+    } else {
       _stopWebRTC();
     }
   }
