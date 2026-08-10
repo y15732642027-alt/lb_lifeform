@@ -57,7 +57,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       // 监听PCM数据·通过VoiceStream发送
       _recSub = pcmController.stream.listen((food) {
         if (food is FoodData && _voice != null && _voice!.isConnected) {
-          _voice!.send(food.data!);
+          _voice!.send(food);
         }
       });
       // 流式录音: PCM16·16kHz·单声道
