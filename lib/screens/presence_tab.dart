@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:record/record.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -31,12 +31,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  final AudioRecorder _recorder = AudioRecorder();
+  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
-  StreamSubscription<RecordState>? _recSub;
+  StreamSubscription? _recSub;
 
   void _toggleMic() {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
@@ -50,22 +50,23 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Future<void> _startRecording() async {
     try {
-      // 激活iOS AudioSession
-      await _recorder.listInputDevices();
-      // 检查录音权限
-      final hasPerm = await _recorder.hasPermission();
-      if (!hasPerm) {
-        throw Exception('麦克风权限被拒绝·请在设置中开启');
-      }
-      final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
-      // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.wav,
-        sampleRate: 44100,
+      // 打开录音器
+      await _recorder.openRecorder();
+      // 创建PCM流控制器
+      final pcmController = StreamController<Food>();
+      // 监听PCM数据·通过VoiceStream发送
+      _recSub = pcmController.stream.listen((food) {
+        if (food is FoodData && _voice != null && _voice!.isConnected) {
+          _voice!.send(food.data!);
+        }
+      });
+      // 流式录音: PCM16·16kHz·单声道
+      await _recorder.startRecorder(
+        toStream: pcmController.sink,
+        codec: Codec.pcm16,
+        sampleRate: 16000,
         numChannels: 1,
-        
-      ), path: _recordPath!);
+      );
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
@@ -84,9 +85,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _voiceTimer?.cancel();
     if (_isRecording) {
       _isRecording = false;
-      await _recorder.stop();
-      if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
-      await _processRecording();
+      try {
+        await _recorder.stopRecorder();
+        await _recorder.closeRecorder();
+      } catch (_) {}
+      await _recSub?.cancel();
       if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
     }
   }
@@ -151,7 +154,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _timer = Timer.periodic(const Duration(seconds: 5), (_) { _fetchCounts(); });
   }
 
-  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.dispose(); _player.dispose(); _ws?.close(); super.dispose(); }
+  @override void dispose(){ _orbCtrl.dispose(); _timer?.cancel(); _voiceTimer?.cancel(); _recSub?.cancel(); _recorder.closeRecorder(); _player.dispose(); _ws?.close(); super.dispose(); }
 
   void _fetchCounts() async {
     try {
