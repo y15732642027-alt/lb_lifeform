@@ -38,13 +38,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   String? _recordPath;
   StreamSubscription<RecordState>? _recSub;
 
-  void _toggleMic() {
+  void _toggleMic()
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: "), duration: Duration(seconds:2))); {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('MIC_TAP·状态:$_voiceState'), duration: Duration(seconds:2)));
     HapticFeedback.mediumImpact();
     if (_voiceState == 'idle') {
-      _startWebRTC();
+      _startWebRTC()
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 开始连接..."), duration: Duration(seconds:2)));;
     } else {
-      _stopWebRTC();
+      _stopWebRTC()
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 断开中..."), duration: Duration(seconds:2)));;
     }
   }
 
@@ -60,21 +63,24 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
+      await _recorder.start(
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 录音器启动"), duration: Duration(seconds:2)));const RecordConfig(
         encoder: AudioEncoder.wav,
         sampleRate: 44100,
         numChannels: 1,
         
       ), path: _recordPath!);
       _isRecording = true;
-      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
+      if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
         if (mounted) setState(() => _voiceEnergy = 0.2 + (DateTime.now().millisecond % 100) / 200.0);
       });
     } catch (e) {
       final errMsg = e.toString();
       if (mounted) {
-        setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'idle'; _voiceEnergy = 0; });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音: $errMsg', maxLines:3), duration: Duration(seconds:4)));
       }
     }
@@ -85,9 +91,11 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     if (_isRecording) {
       _isRecording = false;
       await _recorder.stop();
-      if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
+      if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'processing'; _voiceEnergy = 0.6; });
       await _processRecording();
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+      if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'idle'; _voiceEnergy = 0; });
     }
   }
 
@@ -305,33 +313,41 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
         VoiceStream? _voice;
 
-        Future<void> _startWebRTC() async {
-        if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
+        Future<void> _startWebRTC()
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 开始连接..."), duration: Duration(seconds:2))); async {
+        if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'connecting'; _voiceEnergy = 0.5; });
         try {
         _voice = VoiceStream();
         _voice!.onMessage = (type, data) {
           if (type == 'stt') {
             if (mounted) setState(() { _voiceEnergy = 0.8; });
           } else if (type == 'tts') {
-            if (mounted) setState(() { _voiceState = 'responding'; _voiceEnergy = 1.0; });
+            if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'responding'; _voiceEnergy = 1.0; });
             Future.delayed(Duration(seconds: 2), () {
-              if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
+              if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'connected'; _voiceEnergy = 0.5; });
             });
           }
         };
         await _voice!.connect('wss://ws.symbio.xin');
-        if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
+        if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'connected'; _voiceEnergy = 0.5; });
         } catch (e) {
         if (mounted) {
-          setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+          setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'idle'; _voiceEnergy = 0; });
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('WebRTC: $e'), duration: Duration(seconds:3)));
         }
         }
         }
 
-        Future<void> _stopWebRTC() async {
+        Future<void> _stopWebRTC()
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 断开中..."), duration: Duration(seconds:2))); async {
         await _voice?.disconnect();
         _voice = null;
-        if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        if (mounted) setState(() { _voiceState
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Snack: 状态→$_voiceState"), duration: Duration(seconds:2))); = 'idle'; _voiceEnergy = 0; });
         }
         }
