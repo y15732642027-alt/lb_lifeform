@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
 
@@ -23,7 +23,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   List<Map<String,dynamic>> _tasks = [], _approvals = [], _notifs = [];
   final List<Map<String,String>> _conversations = [];
   final _chatCtrl = TextEditingController();
-  final FlutterSoundRecorder _chatRecorder = FlutterSoundRecorder();
+  final AudioRecorder _chatRecorder = AudioRecorder();
   bool _isChatRecording = false;
   String? _chatRecordPath;
   String _chatReply = '';
@@ -44,7 +44,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   }
 
   @override
-  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); _chatRecorder.closeRecorder(); super.dispose(); }
+  void dispose() { _timer?.cancel(); _tabController.dispose(); _chatCtrl.dispose(); _chatRecorder.dispose(); super.dispose(); }
 
   Future<void> _fetch() async {
     if (_busy) return;
@@ -113,8 +113,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
     try{
       final dir = await getApplicationDocumentsDirectory();
       _chatRecordPath = dir.path+'/chat_'+DateTime.now().millisecondsSinceEpoch.toString()+'.m4a';
-      await _chatRecorder.openRecorder();
-      await _chatRecorder.startRecorder(toFile: _chatRecordPath!, codec: Codec.aacADTS, sampleRate: 16000, numChannels: 1);
+      await _chatRecorder.start(const RecordConfig(sampleRate:16000,numChannels:1), path:_chatRecordPath!);
       setState((){ _isChatRecording=true; });
     }catch(e){
       setState((){ _isChatRecording=false; });
@@ -124,8 +123,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
 
   Future<void> _stopChatRecording() async {
     try{
-      await _chatRecorder.stopRecorder();
-      await _chatRecorder.closeRecorder();
+      await _chatRecorder.stop();
       setState((){ _isChatRecording=false; });
       if(_chatRecordPath==null) return;
       final f = File(_chatRecordPath!);
