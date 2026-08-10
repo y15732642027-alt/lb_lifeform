@@ -40,7 +40,8 @@ workflows:
           find . -name "*.ipa" -maxdepth 5 -exec cp {} build/ios/ipa/ \;
           ls build/ios/ipa/
     artifacts:
-      - "**/*.ipa"
+      - build/ios/ipa/*.ipa
+      - build/**/*.ipa
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
