@@ -13,6 +13,9 @@ import AVFoundation
     do {
       try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
       try session.setActive(true)
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            print("麦克风权限: \(granted)")
+        }
     } catch {
       print("[AudioSession] 设置失败: \(error)")
     }
