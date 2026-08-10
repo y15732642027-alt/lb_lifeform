@@ -199,16 +199,22 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 权限未授予'), content:Text('去设置→隐私→麦克风→共生体→开'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
         return;
       }
-      final stream = await _recorder.startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate:16000, numChannels:1));
-      int bytes = 0;
-      stream.listen((state) { bytes += 1; }, onError: (e) {
-        Navigator.pop(context);
-        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 录音错误'), content:Text('$e'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
-      });
-      await Future.delayed(Duration(seconds: 2));
-      await _recorder.stop();
       Navigator.pop(context);
-      showDialog(context: context, builder: (_)=>AlertDialog(title:Text(bytes>0 ? '✅ 收到${bytes}帧': '❌ 0帧·录音器启动但无数据'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
+      showDialog(context: context, builder: (_)=>AlertDialog(title:Text('✅ 权限OK·开始录音3秒...')));
+      // 文件录音模式——绕过流式API
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/test_2400.m4a';
+      await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc, sampleRate:16000, numChannels:1), path: path);
+      await Future.delayed(Duration(seconds: 3));
+      final fpath = await _recorder.stop();
+      Navigator.pop(context);
+      if (fpath == null) {
+        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 录音返回null'), actions:[]));
+        return;
+      }
+      final file = File(fpath);
+      final size = await file.length();
+      showDialog(context: context, builder: (_)=>AlertDialog(title:Text(size > 1000 ? '✅ 文件${size}字节·录音OK': '❌ 文件${size}字节·太小'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
     } catch(e) {
       Navigator.pop(context);
       showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ $e'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
