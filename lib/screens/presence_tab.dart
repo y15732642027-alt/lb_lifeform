@@ -11,7 +11,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
-import '../core/webrtc_voice.dart';
+import '../core/voice_stream.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
