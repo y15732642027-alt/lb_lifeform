@@ -50,5 +50,7 @@
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>共生体需要用麦克风和你对话</string>
+	<key>NSCameraUsageDescription</key>
+	<string>需要使用相机进行实时语音视觉交互</string>
 </dict>
 </plist>
