@@ -218,9 +218,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         IconButton(
           icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
           color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
-          onLongPressStart: (_) => _startVoice(),
-            onLongPressEnd: (_) => _stopVoice(),
-            onLongPress: (){} // 空·防止默认,
+          onPressed: null,
+            // 使用Listener包装长按
+            child: Listener(
+              onPointerDown: (_) => _startVoice(),
+              onPointerUp: (_) => _stopVoice(),
+              child: Icon(Icons.mic, color: Colors.white),
+            ),
         ),
         SizedBox(width: 12),
         _agentDial(),
