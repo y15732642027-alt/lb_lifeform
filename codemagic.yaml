@@ -18,7 +18,7 @@ workflows:
         script: flutter pub get
       - name: 设置构建版本
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 105" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 106" ios/Runner/Info.plist
       - name: 初始化签名钥匙串
         script: |
           keychain initialize
