@@ -302,13 +302,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         ]));
         }
 
-        WebRTCVoiceClient? _rtcClient;
+        VoiceStream? _voice;
 
         Future<void> _startWebRTC() async {
         if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
         try {
-        _rtcClient = WebRTCVoiceClient();
-        _rtcClient!.onMessage = (type, data) {
+        _voice = VoiceStream();
+        _voice!.onMessage = (type, data) {
           if (type == 'stt') {
             if (mounted) setState(() { _voiceEnergy = 0.8; });
           } else if (type == 'tts') {
@@ -318,7 +318,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
             });
           }
         };
-        await _rtcClient!.connect('wss://ws.symbio.xin');
+        await _voice!.connect('wss://ws.symbio.xin');
         if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
         } catch (e) {
         if (mounted) {
@@ -329,8 +329,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         }
 
         Future<void> _stopWebRTC() async {
-        await _rtcClient?.disconnect();
-        _rtcClient = null;
+        await _voice?.disconnect();
+        _voice = null;
         if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
         }
         }
