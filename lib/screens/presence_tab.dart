@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
-import 'package:record/record.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -31,7 +31,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   Timer? _voiceTimer;
 
   // 语音录制
-  final AudioRecorder _recorder = AudioRecorder();
+  final AudioRecorder _recorder = FlutterSoundRecorder();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   bool _isRecording = false;
