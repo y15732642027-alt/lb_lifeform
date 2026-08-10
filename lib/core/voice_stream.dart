@@ -2,15 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-/// 纯WebSocket实时语音·不用flutter_webrtc
+/// 纯WebSocket实时语音客户端
 class VoiceStream {
   WebSocket? _ws;
-  Function(String type, dynamic data)? onMessage;
+  void Function(String type, dynamic data)? onMessage;
 
   Future<void> connect(String wsUrl) async {
     _ws = await WebSocket.connect(wsUrl);
-    
-    // 接收消息
     _ws!.listen((data) {
       if (data is String) {
         final msg = jsonDecode(data);

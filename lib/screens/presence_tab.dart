@@ -307,7 +307,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         Future<void> _startWebRTC() async {
         if (mounted) setState(() { _voiceState = 'connecting'; _voiceEnergy = 0.5; });
         try {
-        _rtcClient = WebRTCVoiceClient();
+        _rtcClient = VoiceStream();
         _rtcClient!.onMessage = (type, data) {
           if (type == 'stt') {
             if (mounted) setState(() { _voiceEnergy = 0.8; });
