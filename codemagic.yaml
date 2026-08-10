@@ -36,6 +36,9 @@ workflows:
             --export-options-plist=/Users/builder/export_options.plist
           echo "=== IPA位置检查 ==="
           ls -la build/ios/ipa/ 2>/dev/null || find . -name "*.ipa" -maxdepth 5 2>/dev/null || echo "没找到ipa"
+          mkdir -p build/ios/ipa
+          find . -name "*.ipa" -maxdepth 5 -exec cp {} build/ios/ipa/ \;
+          ls build/ios/ipa/
     artifacts:
       - build/ios/ipa/*.ipa
       - build/**/*.ipa
