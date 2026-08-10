@@ -49,6 +49,14 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Future<void> _startRecording() async {
     try {
+      // iOS权限检查
+      final hasPerm = await _recorder.hasPermission();
+      if (!hasPerm) {
+        final granted = await _recorder.requestPermission();
+        if (!granted) {
+          throw Exception('麦克风权限被拒绝·请在设置中开启');
+        }
+      }
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
