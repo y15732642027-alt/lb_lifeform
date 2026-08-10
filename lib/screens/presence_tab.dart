@@ -36,7 +36,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   WebSocket? _ws;
   bool _isRecording = false;
   String? _recordPath;
-  StreamSubscription<RecordState>? _recSub;
+  StreamSubscription<Food>? _recSub;
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
@@ -59,12 +59,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final dir = await getApplicationDocumentsDirectory();
       _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       // aacLc iOS兼容·采样率16k·单声道
-      await _recorder.start(const RecordConfig(
-        encoder: AudioEncoder.wav,
-        sampleRate: 44100,
-        numChannels: 1,
-        
-      ), path: _recordPath!);
+      await _recorder.startRecorder(toStream: _foodStreamController!.sink, codec: Codec.pcm16, sampleRate: 16000, numChannels: 1), path: _recordPath!);
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       _voiceTimer = Timer.periodic(Duration(milliseconds: 200), (_) {
