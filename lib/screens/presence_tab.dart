@@ -189,6 +189,32 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     return (v[0]-v[1]).distance;
   }
 
+
+  void _diagRecord() async {
+    showDialog(context: context, barrierDismissible: false, builder: (_)=>AlertDialog(title:Text('测试中...')));
+    try {
+      final has = await _recorder.hasPermission();
+      if (!has) {
+        Navigator.pop(context);
+        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 权限未授予'), content:Text('去设置→隐私→麦克风→共生体→开'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
+        return;
+      }
+      final stream = await _recorder.startStream(const RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate:16000, numChannels:1));
+      int bytes = 0;
+      stream.listen((state) { bytes += 1; }, onError: (e) {
+        Navigator.pop(context);
+        showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ 录音错误'), content:Text('$e'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
+      });
+      await Future.delayed(Duration(seconds: 2));
+      await _recorder.stop();
+      Navigator.pop(context);
+      showDialog(context: context, builder: (_)=>AlertDialog(title:Text(bytes>0 ? '✅ 收到${bytes}帧': '❌ 0帧·录音器启动但无数据'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
+    } catch(e) {
+      Navigator.pop(context);
+      showDialog(context: context, builder: (_)=>AlertDialog(title:Text('❌ $e'), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text('OK'))]));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
