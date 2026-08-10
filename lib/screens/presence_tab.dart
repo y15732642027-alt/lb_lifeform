@@ -49,6 +49,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Future<void> _startRecording() async {
     try {
+      // 激活iOS AudioSession
+      await _recorder.listInputDevices();
       // 检查录音权限
       final hasPerm = await _recorder.hasPermission();
       if (!hasPerm) {
@@ -59,7 +61,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       // aacLc iOS兼容·采样率16k·单声道
       await _recorder.start(const RecordConfig(
         encoder: AudioEncoder.wav,
-        sampleRate: 16000,
+        sampleRate: 44100,
         numChannels: 1,
         
       ), path: _recordPath!);
