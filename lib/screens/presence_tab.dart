@@ -322,12 +322,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
             });
           }
         };
-        await _voice!.connect('wss://ws.symbio.xin');
+        await _voice!.connect('ws://192.168.1.4:9878');
         if (mounted) setState(() { _voiceState = 'connected'; _voiceEnergy = 0.5; });
         } catch (e) {
         if (mounted) {
           setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('WebRTC: $e'), duration: Duration(seconds:3)));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('连接: $e'), duration: Duration(seconds:3)));
         }
         }
         }
