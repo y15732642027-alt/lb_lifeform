@@ -341,7 +341,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       ));
       print('AUDIO_STREAM_STARTED');
       _audioSub = stream.listen((data) {
-        if (_voice?._ws != null) {
+        if (_voice?.isConnected == true) {
           _voice!.send(data);
         }
       });
