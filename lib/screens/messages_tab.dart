@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
 
@@ -23,7 +23,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   List<Map<String,dynamic>> _tasks = [], _approvals = [], _notifs = [];
   final List<Map<String,String>> _conversations = [];
   final _chatCtrl = TextEditingController();
-  final FlutterSoundRecorder _chatRecorder = FlutterSoundRecorder();
+  final AudioRecorder _chatRecorder = AudioRecorder();
   bool _isChatRecording = false;
   String? _chatRecordPath;
   String _chatReply = '';
