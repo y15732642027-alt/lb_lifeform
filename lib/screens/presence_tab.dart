@@ -109,8 +109,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _onStreamMsg(String type, dynamic data) {
     if (type == 'stt') {
-      if (mounted) setState(() { _voiceText = data.toString(); _voiceState = 'processing'; });
+      if (mounted) setState(() { _voiceText = data.toString(); _voiceReply = ''; _voiceState = 'processing'; });
+    } else if (type == 'tts_delta') {
+      // 流式增量·回复逐块长出来(GPT式打字感)
+      if (mounted) setState(() { _voiceReply += data.toString(); });
     } else if (type == 'tts') {
+      // 完整回复兜底
       if (mounted) setState(() { _voiceReply = data.toString(); });
     } else if (type == 'audio') {
       // 暂停收音(防喇叭回录)·播完自动恢复收音=连续对话
