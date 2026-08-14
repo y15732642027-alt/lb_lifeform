@@ -29,6 +29,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   String _greeting = '', _statusDetail = '所有系统正常';
   String _voiceState = 'idle';
   String _voiceText = '', _voiceReply = '';
+  List<String> _recentTasks = [];
   double _voiceEnergy = 0.0;
   Timer? _voiceTimer;
 
@@ -97,7 +98,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final uri = Uri.parse('http://symbio.xin/voice');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('file', _recordPath!));
-      final response = await request.send().timeout(Duration(seconds: 30));
+      final response = await request.send().timeout(Duration(seconds: 90));
       final body = await response.stream.bytesToString();
 
       if (response.statusCode == 200) {
@@ -165,7 +166,15 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
             final st = t['status'] ?? '';
             if (st == 'done') { learned++; } else { approved++; }
           }
-          if(mounted) setState(() { _completedTasks=approved; _learnedSkills=learned; _unreadMsg=unread; });
+          // 最近任务(最新两条)
+          final titles = <String>[];
+          for (var t in d.reversed) {
+            if (titles.length >= 2) break;
+            final task = (t['task'] ?? '').toString();
+            final agent = (t['agent'] ?? '').toString();
+            if (task.isNotEmpty) titles.add('$agent: $task');
+          }
+          if(mounted) setState(() { _completedTasks=approved; _learnedSkills=learned; _unreadMsg=unread; _recentTasks=titles; });
         }
       }
     } catch (_) {}
@@ -313,7 +322,13 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   );
 
   Widget _recentMemories() {
-    final items = ['记忆体518条·三层已落', 'App 3400语音黄灯修复'];
+    // 实时数据: 从任务队列拉最新两条(不再是写死的字)
+    final items = <String>[];
+    if (_recentTasks.isNotEmpty) {
+      items.addAll(_recentTasks);
+    } else {
+      items.add('正在拉取任务队列...');
+    }
     return Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('最近记忆', style: TextStyle(color: Colors.white38, fontSize: 12)),
       SizedBox(height: 4),

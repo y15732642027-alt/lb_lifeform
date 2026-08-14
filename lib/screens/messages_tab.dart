@@ -135,7 +135,7 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
       final uri = Uri.parse('http://symbio.xin/voice');
       final req = http.MultipartRequest('POST', uri);
       req.files.add(await http.MultipartFile.fromPath('file', _chatRecordPath!));
-      final resp = await req.send().timeout(Duration(seconds:30));
+      final resp = await req.send().timeout(Duration(seconds:90));
       final body = await resp.stream.bytesToString();
       if(resp.statusCode==200){
         final data = jsonDecode(body);
