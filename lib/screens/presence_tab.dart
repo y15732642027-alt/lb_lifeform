@@ -54,6 +54,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   // ===== 流式语音: 按住说话·VAD自动断句·同一个灯泡 =====
+  bool _conversationMode = false; // 连续对话开关·点一次进·再点出
+
   Future<void> _startStreaming() async {
     try {
       await _recorder.listInputDevices();
@@ -65,7 +67,18 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _vs = VoiceStream();
       _vs!.onMessage = _onStreamMsg;
       await _vs!.connect('wss://ws.symbio.xin');
-      // 开始PCM流
+      _conversationMode = true;
+      await _resumeStream();
+    } catch (e) {
+      print('流式启动失败: $e → 退回文件录音');
+      _conversationMode = false;
+      _startRecording();
+    }
+  }
+
+  Future<void> _resumeStream() async {
+    if (!_conversationMode) return;
+    try {
       final stream = await _recorder.startStream(const RecordConfig(
         encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1,
       ));
@@ -73,40 +86,54 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.5; });
     } catch (e) {
-      print('流式启动失败: $e → 退回文件录音');
-      _isRecording = false;
-      _startRecording();
+      print('收音恢复失败: $e');
     }
   }
 
+  Future<void> _pauseMicForPlayback() async {
+    _isRecording = false;
+    try { await _pcmSub?.cancel(); } catch (_) {}
+    try { await _recorder.stop(); } catch (_) {}
+    if (mounted) setState(() { _voiceState = 'speaking'; });
+  }
+
   Future<void> _stopStreaming() async {
+    _conversationMode = false;
     _isRecording = false;
     try { await _pcmSub?.cancel(); } catch (_) {}
     try { await _recorder.stop(); } catch (_) {}
     try { await _vs?.disconnect(); } catch (_) {}
     _vs = null;
-    if (mounted) setState(() { _voiceState = 'processing'; });
+    if (mounted) setState(() { _voiceState = 'idle'; });
   }
 
   void _onStreamMsg(String type, dynamic data) {
     if (type == 'stt') {
       if (mounted) setState(() { _voiceText = data.toString(); _voiceState = 'processing'; });
     } else if (type == 'tts') {
-      if (mounted) setState(() { _voiceReply = data.toString(); _voiceState = 'speaking'; });
+      if (mounted) setState(() { _voiceReply = data.toString(); });
     } else if (type == 'audio') {
-      // 收到语音回复·自动停麦(防喇叭回录)·播放
-      _stopStreaming();
-      _playAudioBytes(data as List<int>);
+      // 暂停收音(防喇叭回录)·播完自动恢复收音=连续对话
+      _pauseMicForPlayback();
+      _playAudioBytes(data as List<int>, onDone: () {
+        if (_conversationMode) {
+          _resumeStream();
+        }
+      });
     }
   }
 
-  Future<void> _playAudioBytes(List<int> bytes) async {
+  Future<void> _playAudioBytes(List<int> bytes, {void Function()? onDone}) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final p = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
       await File(p).writeAsBytes(bytes);
       await _player.stop();
       await _player.play(DeviceFileSource(p));
+      // 播完回调·恢复收音
+      if (onDone != null) {
+        _player.onPlayerComplete.listen((_) { onDone(); });
+      }
     } catch (e) {
       print('音频播放失败: $e');
     }
