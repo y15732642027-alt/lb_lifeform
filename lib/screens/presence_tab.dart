@@ -28,6 +28,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   late AnimationController _orbCtrl;
   String _greeting = '', _statusDetail = '所有系统正常';
   String _voiceState = 'idle';
+  String _voiceText = '', _voiceReply = '';
   double _voiceEnergy = 0.0;
   Timer? _voiceTimer;
 
@@ -106,6 +107,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
         final audioB64 = data['audio'] ?? '';
 
         print('语音: text=$text reply=$reply');
+
+        // 文字必显: 无论音频播放成不成·回复必须看得见
+        if (mounted) setState(() { _voiceText = text; _voiceReply = reply; });
 
         // 播放回复音频
         if (audioB64.isNotEmpty) {
@@ -239,6 +243,14 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 5),
       Text(_greeting, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w300)),
       Text(_statusDetail, style: TextStyle(color: HermesTheme.gold, fontSize: 12)),
+      // 语音对话显示: 你说+灯泡回复
+      if (_voiceText.isNotEmpty || _voiceReply.isNotEmpty)
+        Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6), child: Column(children: [
+          if (_voiceText.isNotEmpty)
+            Text('你说: $_voiceText', style: TextStyle(color: Colors.white54, fontSize: 13)),
+          if (_voiceReply.isNotEmpty)
+            Padding(padding: EdgeInsets.only(top: 4), child: Text('灯泡: $_voiceReply', style: TextStyle(color: HermesTheme.gold, fontSize: 15, fontWeight: FontWeight.w500))),
+        ])),
       SizedBox(height: 8),
       // 四列统计·Listener替代GestureDetector防白框bug
       Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(children: [
