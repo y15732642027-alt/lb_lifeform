@@ -60,13 +60,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   Future<void> _interruptAndListen() async {
     try { await _player.stop(); } catch (_) {}
+    _audioQueue.clear();
+    _audioPlaying = false;
     _vs?.sendInterrupt();
-    if (mounted) setState(() { _voiceReply = ''; });
-    await _resumeStream();
+    if (mounted) setState(() { _voiceReply = ''; _voiceState = 'listening'; });
   }
 
   // ===== 流式语音: 按住说话·VAD自动断句·同一个灯泡 =====
   bool _conversationMode = false; // 连续对话开关·点一次进·再点出
+  final List<List<int>> _audioQueue = []; // 逐句音频队列·顺序播放
+  bool _audioPlaying = false;
 
   Future<void> _startStreaming() async {
     try {
@@ -102,12 +105,6 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     }
   }
 
-  Future<void> _pauseMicForPlayback() async {
-    _isRecording = false;
-    try { await _pcmSub?.cancel(); } catch (_) {}
-    try { await _recorder.stop(); } catch (_) {}
-  }
-
   Future<void> _stopStreaming() async {
     _conversationMode = false;
     _isRecording = false;
@@ -121,8 +118,6 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   void _onStreamMsg(String type, dynamic data) {
     if (type == 'stt') {
       if (mounted) setState(() { _voiceText = data.toString(); _voiceReply = ''; _voiceState = 'processing'; });
-      // 识别完成·说话结束·先停麦(防环境噪声干扰服务器)·播完回复再恢复
-      _pauseMicForPlayback();
     } else if (type == 'tts_delta') {
       // 流式增量·回复逐块长出来(GPT式打字感)
       if (mounted) setState(() { _voiceReply += data.toString(); });
@@ -130,30 +125,38 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       // 完整回复兜底
       if (mounted) setState(() { _voiceReply = data.toString(); });
     } else if (type == 'audio') {
-      // 暂停收音(防喇叭回录)·播完自动恢复收音=连续对话
-      _pauseMicForPlayback();
-      if (mounted) setState(() { _voiceState = 'speaking'; });
-      _playAudioBytes(data as List<int>, onDone: () {
-        if (_conversationMode) {
-          _resumeStream();
-        }
-      });
+      // 逐句音频·进队列顺序播放
+      _audioQueue.add(data as List<int>);
+      if (!_audioPlaying) {
+        _playNextFromQueue();
+      }
     }
   }
 
-  Future<void> _playAudioBytes(List<int> bytes, {void Function()? onDone}) async {
+  Future<void> _playNextFromQueue() async {
+    if (_audioQueue.isEmpty) {
+      _audioPlaying = false;
+      return;
+    }
+    _audioPlaying = true;
+    final bytes = _audioQueue.removeAt(0);
+    if (mounted) setState(() { _voiceState = 'speaking'; });
     try {
       final dir = await getApplicationDocumentsDirectory();
       final p = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
       await File(p).writeAsBytes(bytes);
+      _vs?.sendPlaying();
       await _player.stop();
       await _player.play(DeviceFileSource(p));
-      // 播完回调·恢复收音
-      if (onDone != null) {
-        _player.onPlayerComplete.listen((_) { onDone(); });
-      }
+      // 播完回调: 通知服务器·播下一段
+      _player.onPlayerComplete.listen((_) {
+        _vs?.sendPlayed();
+        _playNextFromQueue();
+      });
     } catch (e) {
       print('音频播放失败: $e');
+      _vs?.sendPlayed();
+      _playNextFromQueue();
     }
   }
 

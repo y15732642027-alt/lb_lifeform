@@ -28,6 +28,16 @@ class VoiceStream {
     _ws?.add('{"type":"interrupt"}');
   }
 
+  /// 灯泡开始播放语音(服务器屏蔽回音)
+  void sendPlaying() {
+    _ws?.add('{"type":"playing"}');
+  }
+
+  /// 播放结束
+  void sendPlayed() {
+    _ws?.add('{"type":"played"}');
+  }
+
   void send(List<int> pcmBytes) {
     _ws?.add(pcmBytes);
   }
