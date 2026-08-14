@@ -95,15 +95,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
     try {
       // 双路语音上传: 家里WiFi直连局域网(快)·连不上走外网隧道
-      final file = await http.MultipartFile.fromPath('file', _recordPath!);
+      // 文件读成字节·每条路各自建MultipartFile(流不能复用)
+      final bytes = await File(_recordPath!).readAsBytes();
       http.StreamedResponse response;
       try {
         final lanReq = http.MultipartRequest('POST', Uri.parse('http://192.168.1.4:8898/voice'));
-        lanReq.files.add(file);
-        response = await lanReq.send().timeout(Duration(seconds: 6));
+        lanReq.files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'voice.wav'));
+        response = await lanReq.send().timeout(Duration(seconds: 4));
       } catch (_) {
         final wanReq = http.MultipartRequest('POST', Uri.parse('http://symbio.xin/voice'));
-        wanReq.files.add(file);
+        wanReq.files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'voice.wav'));
         response = await wanReq.send().timeout(Duration(seconds: 90));
       }
       final body = await response.stream.bytesToString();
