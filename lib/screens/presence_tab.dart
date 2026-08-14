@@ -106,7 +106,6 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     _isRecording = false;
     try { await _pcmSub?.cancel(); } catch (_) {}
     try { await _recorder.stop(); } catch (_) {}
-    if (mounted) setState(() { _voiceState = 'speaking'; });
   }
 
   Future<void> _stopStreaming() async {
@@ -122,6 +121,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   void _onStreamMsg(String type, dynamic data) {
     if (type == 'stt') {
       if (mounted) setState(() { _voiceText = data.toString(); _voiceReply = ''; _voiceState = 'processing'; });
+      // 识别完成·说话结束·先停麦(防环境噪声干扰服务器)·播完回复再恢复
+      _pauseMicForPlayback();
     } else if (type == 'tts_delta') {
       // 流式增量·回复逐块长出来(GPT式打字感)
       if (mounted) setState(() { _voiceReply += data.toString(); });
@@ -131,6 +132,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     } else if (type == 'audio') {
       // 暂停收音(防喇叭回录)·播完自动恢复收音=连续对话
       _pauseMicForPlayback();
+      if (mounted) setState(() { _voiceState = 'speaking'; });
       _playAudioBytes(data as List<int>, onDone: () {
         if (_conversationMode) {
           _resumeStream();
