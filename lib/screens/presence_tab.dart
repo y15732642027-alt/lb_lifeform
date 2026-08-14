@@ -61,16 +61,10 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ 录音启动OK'), duration: Duration(seconds:2)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ 录音失败: $e'), duration: Duration(seconds:5)));
+    }
+  }
 
-Future<void> _stopRecording() async {
-    _voiceTimer?.cancel();
-    if (_isRecording) {
-      _isRecording = false;
-      await _recorder.stop();
-      if (mounted) setState(() { _voiceState = 'processing'; _voiceEnergy = 0.6; });
-      await _processRecording();
-      if (mounted) setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
-    }Future<void> _stopRecording() async {
+  Future<void> _stopRecording() async {
     _voiceTimer?.cancel();
     if (_isRecording) {
       _isRecording = false;
