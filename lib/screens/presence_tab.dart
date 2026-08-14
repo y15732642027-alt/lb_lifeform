@@ -204,6 +204,19 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       SizedBox(height: 10),
       // 麦克风·最简单
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        // 黄灯: 真实录音状态指示灯·_isRecording=true才亮
+        AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          width: 14, height: 14,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _isRecording ? Color(0xFFFFA500) : Colors.white12,
+            boxShadow: _isRecording
+                ? [BoxShadow(color: Color(0xFFFFA500).withAlpha(180), blurRadius: 12, spreadRadius: 3)]
+                : [],
+          ),
+        ),
+        SizedBox(width: 10),
         IconButton(
           icon: Icon(_voiceState == 'listening' ? Icons.mic : Icons.mic_none, size: 28),
           color: _voiceState != 'idle' ? HermesTheme.gold : Colors.white54,
