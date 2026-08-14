@@ -143,7 +143,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     if (mounted) setState(() { _voiceState = 'speaking'; });
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final p = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
+      final p = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.wav';
       await File(p).writeAsBytes(bytes);
       _vs?.sendPlaying();
       await _player.stop();
