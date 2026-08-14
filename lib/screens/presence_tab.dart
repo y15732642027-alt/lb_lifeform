@@ -124,6 +124,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     } else if (type == 'tts') {
       // 完整回复兜底
       if (mounted) setState(() { _voiceReply = data.toString(); });
+    } else if (type == 'stop') {
+      // 服务端检测到插话·立即停播让位
+      try { _player.stop(); } catch (_) {}
+      _audioQueue.clear();
+      _audioPlaying = false;
+      if (mounted) setState(() { _voiceState = 'listening'; });
     } else if (type == 'audio') {
       // 逐句音频·进队列顺序播放
       _audioQueue.add(data as List<int>);

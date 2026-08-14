@@ -12,8 +12,11 @@ class VoiceStream {
     _ws!.listen((data) {
       if (data is String) {
         final msg = jsonDecode(data);
-        if (msg['type'] == 'stt' || msg['type'] == 'tts') {
-          onMessage?.call(msg['type'], msg['text']);
+        final t = msg['type'];
+        if (t == 'stt' || t == 'tts' || t == 'tts_delta') {
+          onMessage?.call(t, msg['text']);
+        } else if (t == 'stop') {
+          onMessage?.call('stop', null); // 服务端检测到插话·停播
         }
       } else if (data is List<int>) {
         onMessage?.call('audio', data);
