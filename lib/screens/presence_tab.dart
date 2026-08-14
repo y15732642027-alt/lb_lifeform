@@ -11,6 +11,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
+import '../core/voice_stream.dart';
 import '../widgets/symbio_orb.dart';
 
 class PresenceTab extends StatefulWidget {
@@ -37,17 +38,77 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
+  VoiceStream? _vs;
   bool _isRecording = false;
   String? _recordPath;
   StreamSubscription<RecordState>? _recSub;
+  StreamSubscription<Uint8List>? _pcmSub;
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('点按钮·开始录音'), duration: Duration(seconds:1)));
     if (_isRecording) {
-      _stopRecording();
+      _stopStreaming();
     } else {
+      _startStreaming();
+    }
+  }
+
+  // ===== 流式语音: 按住说话·VAD自动断句·同一个灯泡 =====
+  Future<void> _startStreaming() async {
+    try {
+      await _recorder.listInputDevices();
+      final hasPerm = await _recorder.hasPermission();
+      if (!hasPerm) {
+        throw Exception('麦克风权限被拒绝·请在设置中开启');
+      }
+      // 连流式服务器(外网wss)
+      _vs = VoiceStream();
+      _vs!.onMessage = _onStreamMsg;
+      await _vs!.connect('wss://ws.symbio.xin');
+      // 开始PCM流
+      final stream = await _recorder.startStream(const RecordConfig(
+        encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1,
+      ));
+      _pcmSub = stream.listen((chunk) { _vs?.send(chunk); });
+      _isRecording = true;
+      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.5; });
+    } catch (e) {
+      print('流式启动失败: $e → 退回文件录音');
+      _isRecording = false;
       _startRecording();
+    }
+  }
+
+  Future<void> _stopStreaming() async {
+    _isRecording = false;
+    try { await _pcmSub?.cancel(); } catch (_) {}
+    try { await _recorder.stop(); } catch (_) {}
+    try { await _vs?.disconnect(); } catch (_) {}
+    _vs = null;
+    if (mounted) setState(() { _voiceState = 'processing'; });
+  }
+
+  void _onStreamMsg(String type, dynamic data) {
+    if (type == 'stt') {
+      if (mounted) setState(() { _voiceText = data.toString(); _voiceState = 'processing'; });
+    } else if (type == 'tts') {
+      if (mounted) setState(() { _voiceReply = data.toString(); _voiceState = 'speaking'; });
+    } else if (type == 'audio') {
+      // 收到语音回复·自动停麦(防喇叭回录)·播放
+      _stopStreaming();
+      _playAudioBytes(data as List<int>);
+    }
+  }
+
+  Future<void> _playAudioBytes(List<int> bytes) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final p = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
+      await File(p).writeAsBytes(bytes);
+      await _player.stop();
+      await _player.play(DeviceFileSource(p));
+    } catch (e) {
+      print('音频播放失败: $e');
     }
   }
 
