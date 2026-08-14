@@ -58,6 +58,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('路径: $_recordPath'), duration: Duration(seconds:2)));
       await _recorder.start(const RecordConfig(sampleRate:16000, numChannels:1), path: _recordPath!);
       _isRecording = true;
+      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.8; });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ 录音启动OK'), duration: Duration(seconds:2)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ 录音失败: $e'), duration: Duration(seconds:5)));
@@ -97,6 +98,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
         // 播放回复音频
         if (audioB64.isNotEmpty) {
+          if (mounted) setState(() { _voiceState = 'speaking'; });
           final mp3Bytes = base64Decode(audioB64);
           final dir = await getApplicationDocumentsDirectory();
           final mp3Path = '${dir.path}/reply_${DateTime.now().millisecondsSinceEpoch}.mp3';
@@ -139,7 +141,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _fetchCounts() async {
     try {
-      final r = await http.get(Uri.parse('http://symbio.xin:8899/dispatched')).timeout(Duration(seconds:3));
+      final r = await http.get(Uri.parse('http://symbio.xin/dispatched')).timeout(Duration(seconds:5));
       if (r.statusCode==200) {
         final d = jsonDecode(r.body);
         if (d is List) {
@@ -161,7 +163,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _fetchStatus() async {
     try {
-      final r = await http.get(Uri.parse('http://symbio.xin:8848/health')).timeout(Duration(seconds: 3));
+      final r = await http.get(Uri.parse('http://symbio.xin/health')).timeout(Duration(seconds: 5));
       if (r.statusCode == 200) setState(() { _statusDetail = '所有系统正常'; return; });
     } catch (_) {}
     setState(() { _statusDetail = '白鼠未响应·本地运行中'; });
@@ -275,7 +277,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   );
 
   Widget _recentMemories() {
-    final items = ['App神经星图上线', '记忆系统370条'];
+    final items = ['记忆体518条·三层已落', 'App 3400语音黄灯修复'];
     return Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('最近记忆', style: TextStyle(color: Colors.white38, fontSize: 12)),
       SizedBox(height: 4),
