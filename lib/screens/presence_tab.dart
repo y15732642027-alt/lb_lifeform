@@ -46,11 +46,23 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   void _toggleMic() {
     HapticFeedback.mediumImpact();
+    // 对话中·灯泡在说/在思考·点麦=打断·马上听新的
+    if (_conversationMode && (_voiceState == 'speaking' || _voiceState == 'processing')) {
+      _interruptAndListen();
+      return;
+    }
     if (_isRecording) {
       _stopStreaming();
     } else {
       _startStreaming();
     }
+  }
+
+  Future<void> _interruptAndListen() async {
+    try { await _player.stop(); } catch (_) {}
+    _vs?.sendInterrupt();
+    if (mounted) setState(() { _voiceReply = ''; });
+    await _resumeStream();
   }
 
   // ===== 流式语音: 按住说话·VAD自动断句·同一个灯泡 =====

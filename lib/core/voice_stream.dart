@@ -23,6 +23,11 @@ class VoiceStream {
     });
   }
 
+  /// 打断: 发送打断指令
+  void sendInterrupt() {
+    _ws?.add('{"type":"interrupt"}');
+  }
+
   void send(List<int> pcmBytes) {
     _ws?.add(pcmBytes);
   }
