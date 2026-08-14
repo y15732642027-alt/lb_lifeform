@@ -50,18 +50,29 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
     Future<void> _startRecording() async {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🔴 启动录音...'), duration: Duration(seconds:2)));
     try {
-      // 最简文件录音——参考消息框能工作的方式
+      // 激活iOS AudioSession(关键·没有它录到的是静音)
+      await _recorder.listInputDevices();
+      // 检查录音权限
+      final hasPerm = await _recorder.hasPermission();
+      if (!hasPerm) {
+        throw Exception('麦克风权限被拒绝·请在设置中开启');
+      }
       final dir = await getApplicationDocumentsDirectory();
-      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('路径: $_recordPath'), duration: Duration(seconds:2)));
-      await _recorder.start(const RecordConfig(sampleRate:16000, numChannels:1), path: _recordPath!);
+      _recordPath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+      await _recorder.start(const RecordConfig(
+        encoder: AudioEncoder.wav,
+        sampleRate: 44100,
+        numChannels: 1,
+      ), path: _recordPath!);
       _isRecording = true;
-      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.8; });
+      if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.3; });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ 录音启动OK'), duration: Duration(seconds:2)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ 录音失败: $e'), duration: Duration(seconds:5)));
+      if (mounted) {
+        setState(() { _voiceState = 'idle'; _voiceEnergy = 0; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('录音失败: $e', maxLines: 3), duration: Duration(seconds:5)));
+      }
     }
   }
 

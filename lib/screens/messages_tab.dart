@@ -111,9 +111,13 @@ class MessagesTabState extends State<MessagesTab> with SingleTickerProviderState
   }
   Future<void> _startChatRecording() async {
     try{
+      // 激活iOS AudioSession+权限(和presence页同款修复)
+      await _chatRecorder.listInputDevices();
+      final hasPerm = await _chatRecorder.hasPermission();
+      if (!hasPerm) throw Exception('麦克风权限被拒绝·请在设置中开启');
       final dir = await getApplicationDocumentsDirectory();
-      _chatRecordPath = dir.path+'/chat_'+DateTime.now().millisecondsSinceEpoch.toString()+'.m4a';
-      await _chatRecorder.start(const RecordConfig(sampleRate:16000,numChannels:1), path:_chatRecordPath!);
+      _chatRecordPath = dir.path+'/chat_'+DateTime.now().millisecondsSinceEpoch.toString()+'.wav';
+      await _chatRecorder.start(const RecordConfig(encoder: AudioEncoder.wav, sampleRate:44100, numChannels:1), path:_chatRecordPath!);
       setState((){ _isChatRecording=true; });
     }catch(e){
       setState((){ _isChatRecording=false; });
