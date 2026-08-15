@@ -97,11 +97,41 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       final stream = await _recorder.startStream(const RecordConfig(
         encoder: AudioEncoder.pcm16bits, sampleRate: 16000, numChannels: 1,
       ));
-      _pcmSub = stream.listen((chunk) { _vs?.send(chunk); });
+      _pcmSub = stream.listen((chunk) {
+        _vs?.send(chunk);
+        _detectTalkWhilePlaying(chunk);
+      });
       _isRecording = true;
       if (mounted) setState(() { _voiceState = 'listening'; _voiceEnergy = 0.5; });
     } catch (e) {
       print('收音恢复失败: $e');
+    }
+  }
+
+  int _strongCount = 0;
+  /// 自然打断: 灯泡说话时检测到二郎持续开口→停播+打断+继续听
+  void _detectTalkWhilePlaying(List<int> chunk) {
+    if (!_audioPlaying) {
+      _strongCount = 0;
+      return;
+    }
+    if (chunk.length < 200) return;
+    double energy = 0;
+    final n = chunk.length ~/ 2 < 100 ? chunk.length ~/ 2 : 100;
+    for (int i = 0; i < n; i++) {
+      final v = (chunk[i * 2] | (chunk[i * 2 + 1] << 8)) - 32768;
+      energy += v.abs();
+    }
+    energy /= n;
+    if (energy > 2500) {
+      _strongCount++;
+      if (_strongCount >= 5) {
+        _strongCount = 0;
+        print('自然打断: 检测到人声·停播让位');
+        _interruptAndListen();
+      }
+    } else {
+      _strongCount = 0;
     }
   }
 
