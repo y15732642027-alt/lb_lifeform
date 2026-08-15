@@ -36,7 +36,19 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   // 语音录制
   final AudioRecorder _recorder = AudioRecorder();
-  final AudioPlayer _player = AudioPlayer();
+  // playAndRecord会话: 播放与录音共存·录音流在播放期间持续(自然打断的数据基础)
+  final AudioPlayer _player = AudioPlayer(
+    audioContext: const AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playAndRecord,
+        options: {
+          AVAudioSessionOptions.defaultToSpeaker,
+          AVAudioSessionOptions.allowBluetooth,
+          AVAudioSessionOptions.allowBluetoothA2DP,
+        },
+      ),
+    ),
+  );
   WebSocket? _ws;
   VoiceStream? _vs;
   bool _isRecording = false;
@@ -62,6 +74,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     try { await _player.stop(); } catch (_) {}
     _audioQueue.clear();
     _audioPlaying = false;
+    _suppressNextComplete = true; // 吞掉stop触发的complete·防自动续播=停不下来
     _vs?.sendInterrupt();
     if (mounted) setState(() { _voiceReply = ''; _voiceState = 'listening'; });
   }
@@ -187,6 +200,8 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
     }
   }
 
+  bool _suppressNextComplete = false; // 打断后忽略一次complete回调·防停不下来
+
   Future<void> _playNextFromQueue() async {
     if (_audioQueue.isEmpty) {
       _audioPlaying = false;
@@ -202,8 +217,12 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       _vs?.sendPlaying();
       await _player.stop();
       await _player.play(DeviceFileSource(p));
-      // 播完回调: 通知服务器·播下一段
+      // 播完回调: 通知服务器·播下一段(一次性监听·防重复注册)
       _player.onPlayerComplete.listen((_) {
+        if (_suppressNextComplete) {
+          _suppressNextComplete = false;
+          return;
+        }
         _vs?.sendPlayed();
         _playNextFromQueue();
       });
