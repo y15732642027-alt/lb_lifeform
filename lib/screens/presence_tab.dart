@@ -110,6 +110,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   int _strongCount = 0;
   /// 自然打断: 灯泡说话时检测到二郎持续开口→停播+打断+继续听
+  /// 阈值15000: 远高于喇叭回音(避免自己打断自己)·近嘴人声轻松超过
   void _detectTalkWhilePlaying(List<int> chunk) {
     if (!_audioPlaying) {
       _strongCount = 0;
@@ -123,9 +124,9 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       energy += v.abs();
     }
     energy /= n;
-    if (energy > 2500) {
+    if (energy > 15000) {
       _strongCount++;
-      if (_strongCount >= 5) {
+      if (_strongCount >= 8) {
         _strongCount = 0;
         print('自然打断: 检测到人声·停播让位');
         _interruptAndListen();
