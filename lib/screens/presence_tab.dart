@@ -109,16 +109,16 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   int _strongCount = 0;
-  double _echoBaseline = -1; // -1=未采样·播放初期实测回声水平
-  double _baseAccum = 0;
+  double _echoBaseline = -1; // -1=未采样·播放初期实测回声底噪(取最低值)
+  double _baseMin = 99999;
   int _baseSamples = 0;
-  /// 自然打断·基线法: 播放头0.5秒采回声基线·之后能量>基线2.5倍且>8000才算人声
-  /// 音量自适应·噪音进基线自动被滤
+  /// 自然打断·基线法v2: 播放头0.5秒采回声最低值当基线·之后能量>基线2倍且>3000即人声
+  /// 正常音量人声3000+·回音/空调都在基线里·自适应不误断
   void _detectTalkWhilePlaying(List<int> chunk) {
     if (!_audioPlaying) {
       _strongCount = 0;
       _echoBaseline = -1;
-      _baseAccum = 0;
+      _baseMin = 99999;
       _baseSamples = 0;
       return;
     }
@@ -130,21 +130,22 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       energy += v.abs();
     }
     energy /= n;
-    // 基线采样期: 播放前0.5秒(10块)·只测回声不判定
+    // 基线采样期: 播放前0.5秒(10块)·取最低能量=真实底噪
     if (_echoBaseline < 0) {
-      _baseAccum += energy;
+      if (energy < _baseMin) _baseMin = energy;
       _baseSamples++;
       if (_baseSamples >= 10) {
-        _echoBaseline = _baseAccum / _baseSamples;
-        print('回声基线: ${_echoBaseline.round()}');
+        _echoBaseline = _baseMin;
+        print('回声基线(最低): ${_echoBaseline.round()}');
       }
       return;
     }
-    if (energy > _echoBaseline * 2.5 && energy > 8000) {
+    final threshold = _echoBaseline * 2 > 3000 ? _echoBaseline * 2 : 3000;
+    if (energy > threshold) {
       _strongCount++;
-      if (_strongCount >= 6) {
+      if (_strongCount >= 4) {
         _strongCount = 0;
-        print('自然打断: 人声检测(基线${_echoBaseline.round()}·当前${energy.round()})');
+        print('自然打断: 人声(基线${_echoBaseline.round()}·当前${energy.round()})');
         _interruptAndListen();
       }
     } else {
