@@ -36,19 +36,7 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
 
   // 语音录制
   final AudioRecorder _recorder = AudioRecorder();
-  // playAndRecord会话: 播放与录音共存·录音流在播放期间持续(自然打断的数据基础)
-  final AudioPlayer _player = AudioPlayer(
-    audioContext: const AudioContext(
-      iOS: AudioContextIOS(
-        category: AVAudioSessionCategory.playAndRecord,
-        options: {
-          AVAudioSessionOptions.defaultToSpeaker,
-          AVAudioSessionOptions.allowBluetooth,
-          AVAudioSessionOptions.allowBluetoothA2DP,
-        },
-      ),
-    ),
-  );
+  final AudioPlayer _player = AudioPlayer();
   WebSocket? _ws;
   VoiceStream? _vs;
   bool _isRecording = false;
@@ -332,6 +320,17 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
+    // playAndRecord会话: 播放与录音共存·录音流在播放期间持续(自然打断的数据基础)
+    _player.setAudioContext(AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.playAndRecord,
+        options: {
+          AVAudioSessionOptions.defaultToSpeaker,
+          AVAudioSessionOptions.allowBluetooth,
+          AVAudioSessionOptions.allowBluetoothA2DP,
+        },
+      ),
+    ));
     _fetchCounts();
     _orbCtrl = AnimationController(vsync:this,duration:Duration(seconds:1))
       ..addListener((){
