@@ -109,11 +109,17 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
   }
 
   int _strongCount = 0;
-  /// 自然打断: 灯泡说话时检测到二郎持续开口→停播+打断+继续听
-  /// 阈值15000: 远高于喇叭回音(避免自己打断自己)·近嘴人声轻松超过
+  double _echoBaseline = -1; // -1=未采样·播放初期实测回声水平
+  double _baseAccum = 0;
+  int _baseSamples = 0;
+  /// 自然打断·基线法: 播放头0.5秒采回声基线·之后能量>基线2.5倍且>8000才算人声
+  /// 音量自适应·噪音进基线自动被滤
   void _detectTalkWhilePlaying(List<int> chunk) {
     if (!_audioPlaying) {
       _strongCount = 0;
+      _echoBaseline = -1;
+      _baseAccum = 0;
+      _baseSamples = 0;
       return;
     }
     if (chunk.length < 200) return;
@@ -124,11 +130,21 @@ class _PresenceTabState extends State<PresenceTab> with SingleTickerProviderStat
       energy += v.abs();
     }
     energy /= n;
-    if (energy > 15000) {
+    // 基线采样期: 播放前0.5秒(10块)·只测回声不判定
+    if (_echoBaseline < 0) {
+      _baseAccum += energy;
+      _baseSamples++;
+      if (_baseSamples >= 10) {
+        _echoBaseline = _baseAccum / _baseSamples;
+        print('回声基线: ${_echoBaseline.round()}');
+      }
+      return;
+    }
+    if (energy > _echoBaseline * 2.5 && energy > 8000) {
       _strongCount++;
-      if (_strongCount >= 8) {
+      if (_strongCount >= 6) {
         _strongCount = 0;
-        print('自然打断: 检测到人声·停播让位');
+        print('自然打断: 人声检测(基线${_echoBaseline.round()}·当前${energy.round()})');
         _interruptAndListen();
       }
     } else {
